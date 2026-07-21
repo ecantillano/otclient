@@ -28,12 +28,14 @@ gameplay, pero no se oculta llenando el paquete con datos sin licencia.
 
 ## Budgets
 
-No se fijó un límite arbitrario antes de medir. El primer build Release
-validado establece el baseline por plataforma y componente. A partir de ahí:
+El primer build Release validado establece el baseline por plataforma y
+componente. Mientras no existen assets autorizados, CI aplica además un límite
+duro de 100 MiB al paquete completo de código y recursos incluidos. A partir de
+ese baseline:
 
 - cada reporte registra bytes comprimidos y sin comprimir;
 - CI rechaza crecimiento superior a 10% contra el baseline elegido;
-- un presupuesto duro es opcional y debe provenir de una medición aprobada;
+- CI pasa `--budget 104857600` en build y release;
 - assets se miden aparte para no ocultar regresiones de core/modules/data;
 - el top 100 y el resumen por carpeta quedan en `size-report-<platform>.json`.
 

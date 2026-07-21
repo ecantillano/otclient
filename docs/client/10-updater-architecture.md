@@ -29,6 +29,7 @@ El launcher consume un manifest estático por HTTPS. GitHub API no es parte del 
 13. Procesar `delete` sólo dentro del root permitido.
 14. Escribir estado local al final.
 15. Iniciar Thappy y conservar backup hasta confirmar arranque.
+16. Revertir en el siguiente inicio si queda un journal sin confirmar.
 
 ## Datos excluidos del update
 
@@ -51,11 +52,15 @@ Estos datos viven en el directorio de preferencias de Thappy o en el `--user-dir
 - ningún comando shell construido desde el manifest.
 - ningún archivo se ejecuta antes de verificar hash.
 - límite de reintentos y timeout.
+- launcher y cliente directo comparten un lock de instalación;
 - manifest firmado preparado, pero no declarado activo sin una clave pública y un test real.
 
 ## Actualización del launcher
 
-La versión inicial usa la estrategia B: descargar un launcher nuevo verificado como archivo pendiente y reemplazarlo en el siguiente inicio. Si la ruta no está probada en una plataforma, `minimumLauncherVersion` bloquea con instrucciones de actualización manual. No se declara auto-update completo hasta pasar el test de reemplazo en Windows y Linux.
+La versión inicial no reemplaza el launcher en caliente. Los manifests OTA
+omiten `bootstrap`; el ZIP bootstrap existe sólo para instalación o reemplazo
+manual. `minimum_launcher_version` bloquea con instrucciones explícitas cuando
+el launcher instalado es demasiado antiguo.
 
 ## Asset contract
 

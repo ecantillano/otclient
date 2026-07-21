@@ -26,8 +26,9 @@ Comandos:
 $env:VCPKG_ROOT = "C:\vcpkg"
 cmake --preset windows-release -DCMAKE_BUILD_TYPE=Release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_IPO=ON -DOTCLIENT_BUILD_TESTS=OFF
 cmake --build --preset windows-release --config Release --target otclient
-python scripts\package-client.py --platform windows-x64 --build-dir build\windows-release --environment production --output-dir dist
-python scripts\audit-client-package.py dist\Thappy-Windows-x64-0.1.0.zip --environment production
+go build -C launcher -trimpath -ldflags="-s -w -X main.buildVersion=0.1.0" -o "$PWD\launcher\bin\ThappyLauncher.exe" ./cmd/thappy-launcher
+python scripts\package-client.py package --source-root . --binary build\windows-release\bin\Thappy.exe --launcher-binary launcher\bin\ThappyLauncher.exe --runtime-dir build\windows-release\bin --output-dir dist\windows --platform windows --version 0.1.0 --asset-version 1525 --channel stable --environment production --budget 104857600 --base-url https://github.com/ecantillano/otclient/releases/download/client-v0.1.0
+python scripts\audit-client-package.py dist\windows\Thappy-Windows-x86_64-0.1.0.zip --environment production
 ```
 
 El paquete público no incluye PDB, ILK, LIB, OBJ, vcpkg, source tree ni cache. Los símbolos pueden guardarse como artifact privado con retención limitada.
@@ -48,8 +49,9 @@ Comandos:
 export VCPKG_ROOT=/opt/vcpkg
 cmake --preset linux-release -DCMAKE_BUILD_TYPE=Release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_IPO=ON -DOTCLIENT_BUILD_TESTS=OFF
 cmake --build --preset linux-release --target otclient
-python3 scripts/package-client.py --platform linux-x86_64 --build-dir build/linux-release --environment production --output-dir dist
-python3 scripts/audit-client-package.py dist/Thappy-Linux-x86_64-0.1.0.tar.zst --environment production
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -C launcher -trimpath -ldflags="-s -w -X main.buildVersion=0.1.0" -o "$PWD/launcher/bin/thappy-launcher" ./cmd/thappy-launcher
+python3 scripts/package-client.py package --source-root . --binary build/linux-release/bin/thappy --launcher-binary launcher/bin/thappy-launcher --runtime-dir build/linux-release/bin --output-dir dist/linux --platform linux --version 0.1.0 --asset-version 1525 --channel stable --environment production --budget 104857600 --base-url https://github.com/ecantillano/otclient/releases/download/client-v0.1.0
+python3 scripts/audit-client-package.py dist/linux/Thappy-Linux-x86_64-0.1.0.tar.zst --environment production
 ```
 
 El workflow ejecuta en runners x86_64. Un Mac ARM puede probar scripts y launcher, pero no sustituye esos builds.
@@ -57,12 +59,9 @@ El workflow ejecuta en runners x86_64. Un Mac ARM puede probar scripts y launche
 ## Tests y evals
 
 ```bash
-python3 -m unittest discover -s tests -p 'test_*.py'
-python3 scripts/test-production-config.py .
-python3 scripts/test-package.py
-python3 scripts/test-clean-install.py
-python3 scripts/test-update.py
-python3 scripts/run-client-evals.py
+python3 -m unittest tests.test_thappy_official_client
+python3 tests/evals/eval_official_client.py
+python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+python3 scripts/run-client-release-evals.py
+(cd launcher && go test ./... && go test -race ./... && go vet ./...)
 ```
-
-Los comandos exactos pueden requerir argumentos de staging; `--help` es la fuente de verdad del script.
