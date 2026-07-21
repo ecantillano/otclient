@@ -56,7 +56,7 @@ Los manifests de referencia son `manifest-stable.example.json` y
   "version": "0.1.1",
   "protocol_version": 1525,
   "asset_version": "1525",
-  "release_notes_url": "https://github.com/ecantillano/otclient/releases/tag/v0.1.1",
+  "release_notes_url": "https://github.com/ecantillano/otclient/releases/tag/client-v0.1.1",
   "mandatory": false,
   "environment": "production",
   "login_url": "https://login.thappy.cl/login.php",
@@ -126,10 +126,10 @@ No se registran manifests completos, argumentos del cliente, sesiones ni claves.
   CI firme el manifest y se agregue verificación con clave pública embebida.
 - Un transfer truncado se vuelve a descargar con intentos acotados; no existe
   reanudación por rangos en esta versión.
-- El lock detecta otra instancia del launcher y mantiene bloqueado el update
-  mientras el cliente lanzado por él está activo. Un cliente abierto directamente
-  fuera del launcher sólo se detecta cuando el sistema operativo rechaza el
-  reemplazo; esa falla dispara rollback.
+- El launcher y el cliente directo comparten un lock de instalación. Un cliente
+  abierto bloquea el update antes de descargar o reemplazar archivos; el launcher
+  marca explícitamente el proceso que inicia para transferir esa exclusión sin
+  provocar un falso conflicto.
 - La confirmación interpreta salida cero del proceso gestionado como ejecución
   correcta. Un crash o salida distinta de cero revierte el update.
 

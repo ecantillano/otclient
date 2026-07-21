@@ -44,6 +44,11 @@ func TestManifestCarriesProtocolAndEndpointPolicy(t *testing.T) {
 	if err := manifest.Validate("stable", LauncherVersion, []string{"127.0.0.1", "login.thappy.cl"}); err == nil || !strings.Contains(err.Error(), "update Thappy Launcher manually") {
 		t.Fatalf("expected clear minimum launcher error, got %v", err)
 	}
+	manifest.MinimumLauncherVersion = ""
+	manifest.Components[0].Size = int64(maxArchiveTotalBytes) + 1
+	if err := manifest.Validate("stable", LauncherVersion, []string{"127.0.0.1", "login.thappy.cl"}); err == nil || !strings.Contains(err.Error(), "download size limit") {
+		t.Fatalf("expected oversized component rejection, got %v", err)
+	}
 }
 
 func TestOfflineLaunchUsesCachedMandatoryPolicy(t *testing.T) {
@@ -88,6 +93,26 @@ func TestOfflineLaunchUsesCachedMandatoryPolicy(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestOfflineLaunchFailsClosedWhenTransactionJournalRemains(t *testing.T) {
+	fixture := newReleaseServer(t)
+	updater := testUpdater(t, fixture)
+	writeInstallFile(t, updater, "bin/client", "installed")
+	if err := os.MkdirAll(updater.StateRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(updater.journalPath(), []byte(`{"schema_version":2,"phase":"applying"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	launched := false
+	runner := &Runner{
+		Updater: updater, Channel: "stable", ManifestURL: fixture.server.URL + "/manifest.json",
+		ClientExecutable: "bin/client", launch: func(string, []string) error { launched = true; return nil },
+	}
+	if _, err := runner.Run(context.Background()); err == nil || launched || !strings.Contains(err.Error(), "unsafe update transaction remains") {
+		t.Fatalf("dirty transaction did not fail closed: launched=%v err=%v", launched, err)
 	}
 }
 
@@ -145,6 +170,7 @@ func TestDiagnosticRedactsURLsAndReportsReleasePolicy(t *testing.T) {
 	if err := SaveState(updater.statePath(), State{
 		SchemaVersion: StateSchemaVersion, InstalledVersion: "0.1.0", LastGoodVersion: "0.1.0",
 		Components: map[string]string{"core": "1.0.0"}, LastManifest: policy,
+		LastError: filepath.Join(updater.InstallDir, "private", "failure"),
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -156,6 +182,9 @@ func TestDiagnosticRedactsURLsAndReportsReleasePolicy(t *testing.T) {
 	encoded := string(data)
 	if strings.Contains(encoded, "secret") || !strings.Contains(encoded, "redacted") {
 		t.Fatalf("diagnostic leaked query data: %s", encoded)
+	}
+	if strings.Contains(report.LastError, updater.InstallDir) || report.State == nil || strings.Contains(report.State.LastError, updater.InstallDir) {
+		t.Fatalf("diagnostic leaked an error path: %+v", report)
 	}
 	if report.ProtocolVersion != SupportedProtocolVersion || report.AssetVersion != "1525" || !report.Mandatory || report.LoginURL != ProductionLoginURL || report.LoginPort != 443 || report.HTTPLogin || report.UseAuthenticator {
 		t.Fatalf("diagnostic omitted release policy: %+v", report)

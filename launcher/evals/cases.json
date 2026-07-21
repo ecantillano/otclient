@@ -20,6 +20,7 @@
     {"name": "stable prerelease", "mutation": "stable_prerelease", "valid": false},
     {"name": "wrong environment", "mutation": "wrong_environment", "valid": false},
     {"name": "untrusted release notes", "mutation": "untrusted_notes", "valid": false},
-    {"name": "invalid endpoint flag", "mutation": "invalid_endpoint", "valid": false}
+    {"name": "invalid endpoint flag", "mutation": "invalid_endpoint", "valid": false},
+    {"name": "oversized component", "mutation": "oversized_component", "valid": false}
   ]
 }

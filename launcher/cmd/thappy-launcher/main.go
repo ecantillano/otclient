@@ -90,7 +90,10 @@ func run(arguments []string) error {
 	}
 	manifestURL := *manifestOverride
 	if manifestURL == "" {
-		manifestURL, _ = config.ManifestURL(channel)
+		manifestURL, err = config.ManifestURL(channel)
+		if err != nil {
+			return err
+		}
 	} else if err := launcher.ValidateHTTPSURL(manifestURL, config.AllowedHosts); err != nil {
 		return fmt.Errorf("manifest URL: %w", err)
 	}

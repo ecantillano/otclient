@@ -64,6 +64,15 @@ func BuildDiagnostic(updater *Updater, channel, manifestURL, clientExecutable st
 		report.ClientVersion = state.InstalledVersion
 		if state.LastError != "" {
 			report.LastError = PublicError(errors.New(state.LastError))
+			for path, replacement := range map[string]string{
+				updater.StateRoot:  "[launcher-state]",
+				updater.InstallDir: "[install]",
+			} {
+				if path != "" {
+					report.LastError = strings.ReplaceAll(report.LastError, path, replacement)
+				}
+			}
+			state.LastError = report.LastError
 		}
 		report.LastUpdate = state.UpdatedAt
 		if len(state.ComponentHashes) != 0 {
@@ -176,6 +185,9 @@ func PublicError(err error) string {
 		redacted := RedactURL(strings.TrimRight(message[start:end], ").,;"))
 		message = message[:start] + redacted + message[end:]
 		cursor = start + len(redacted)
+	}
+	if home, homeErr := os.UserHomeDir(); homeErr == nil && home != "" {
+		message = strings.ReplaceAll(message, home, "~")
 	}
 	if message == "" {
 		return fmt.Sprintf("%T", err)

@@ -71,6 +71,8 @@ func TestReleaseContractEvalFixtures(t *testing.T) {
 				manifest.ReleaseNotesURL = "https://evil.example/notes"
 			case "invalid_endpoint":
 				manifest.LoginURL = "https://other.example/login.php"
+			case "oversized_component":
+				manifest.Components[0].Size = 9 << 30
 			default:
 				t.Fatalf("unknown mutation %q", testCase.Mutation)
 			}

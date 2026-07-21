@@ -169,6 +169,9 @@ func (manifest Manifest) Validate(expectedChannel, launcherVersion string, allow
 		if component.Size <= 0 {
 			return fmt.Errorf("component %q has invalid size", component.Name)
 		}
+		if uint64(component.Size) > maxArchiveTotalBytes {
+			return fmt.Errorf("component %q exceeds the download size limit", component.Name)
+		}
 		if component.Archive != "zip" {
 			return fmt.Errorf("component %q uses unsupported archive %q", component.Name, component.Archive)
 		}

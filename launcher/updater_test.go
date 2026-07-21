@@ -101,6 +101,7 @@ func releaseConfig(serverURL string) Config {
 	config.AllowedHosts = []string{"127.0.0.1", "login.thappy.cl"}
 	config.Channels["stable"] = ChannelConfig{ManifestURL: serverURL + "/manifest.json"}
 	config.Channels["test"] = ChannelConfig{ManifestURL: serverURL + "/manifest.json"}
+	config.DeleteAllowlist = append(config.DeleteAllowlist, "bin/obsolete")
 	return config
 }
 

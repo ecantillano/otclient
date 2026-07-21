@@ -271,6 +271,9 @@ func (updater *Updater) Update(ctx context.Context, channel, manifestURL string)
 			return result, fmt.Errorf("component sizes overflow")
 		}
 		downloadBytes += uint64(component.Size)
+		if downloadBytes > maxArchiveTotalBytes {
+			return result, fmt.Errorf("component downloads exceed the total size limit")
+		}
 	}
 	if len(nextComponents) == 0 {
 		return result, fmt.Errorf("manifest has no components for %s", updater.Platform)
@@ -294,7 +297,7 @@ func (updater *Updater) Update(ctx context.Context, channel, manifestURL string)
 	updater.reportProgress(ProgressEvent{Phase: "planned", TotalBytes: downloadBytes})
 	if available, supported, diskErr := availableDiskBytes(updater.StateRoot); diskErr != nil {
 		return result, fmt.Errorf("download disk preflight: %w", diskErr)
-	} else if supported && available < downloadBytes+diskSafetyMarginBytes {
+	} else if supported && (downloadBytes > ^uint64(0)-diskSafetyMarginBytes || available < downloadBytes+diskSafetyMarginBytes) {
 		return result, fmt.Errorf("insufficient disk space for downloads")
 	}
 
@@ -334,7 +337,7 @@ func (updater *Updater) Update(ctx context.Context, channel, manifestURL string)
 	}
 
 	preservePaths := append([]string(nil), updater.Config.PreservePaths...)
-	preservePaths = append(preservePaths, ".thappy-launcher/", "launcher-config.json")
+	preservePaths = append(preservePaths, mandatoryPreservePaths...)
 	operations, err := buildOperations(extracted, manifest.Delete, updater.Config.DeleteAllowlist, preservePaths)
 	if err != nil {
 		return result, err
@@ -419,6 +422,14 @@ func (updater *Updater) RecordLastError(recorded error) error {
 		return err
 	}
 	state.LastError = PublicError(recorded)
+	for path, replacement := range map[string]string{
+		updater.StateRoot:  "[launcher-state]",
+		updater.InstallDir: "[install]",
+	} {
+		if path != "" {
+			state.LastError = strings.ReplaceAll(state.LastError, path, replacement)
+		}
+	}
 	return SaveState(updater.statePath(), state)
 }
 

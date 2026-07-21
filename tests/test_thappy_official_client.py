@@ -249,6 +249,15 @@ class RuntimeProfileTests(unittest.TestCase):
         self.assertIn("configure_file(", cmake)
         self.assertIn('file(READ "${CMAKE_SOURCE_DIR}/VERSION" VERSION)', cmake)
 
+    def test_direct_client_holds_launcher_install_lock(self) -> None:
+        main = read("src/main.cpp")
+        runner = read("launcher/runner.go")
+        self.assertIn('stateDir / "launcher.lock"', main)
+        self.assertIn("LOCK_EX | LOCK_NB", main)
+        self.assertIn("LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY", main)
+        self.assertIn('std::getenv("THAPPY_MANAGED_LAUNCH")', main)
+        self.assertIn('"THAPPY_MANAGED_LAUNCH=1"', runner)
+
 
 if __name__ == "__main__":
     unittest.main()

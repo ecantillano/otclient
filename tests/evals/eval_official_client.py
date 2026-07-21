@@ -66,6 +66,14 @@ checks = {
         '"cavebot"',
         '"targetbot"',
     ),
+    "client-update-lock": contains(
+        "src/main.cpp",
+        'stateDir / "launcher.lock"',
+        "LOCK_EX | LOCK_NB",
+        "LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY",
+        'std::getenv("THAPPY_MANAGED_LAUNCH")',
+    )
+    and contains("launcher/runner.go", '"THAPPY_MANAGED_LAUNCH=1"'),
 }
 
 passed = sum(checks.values())

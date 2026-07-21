@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 type RunResult struct {
@@ -63,6 +64,11 @@ func (runner *Runner) Run(ctx context.Context) (RunResult, error) {
 		return result, err
 	}
 	if result.UpdateError != nil {
+		if _, journalErr := os.Stat(runner.Updater.journalPath()); journalErr == nil {
+			return result, fmt.Errorf("unsafe update transaction remains; refusing offline launch: %w", result.UpdateError)
+		} else if !errors.Is(journalErr, os.ErrNotExist) {
+			return result, fmt.Errorf("cannot verify update transaction state: %w", journalErr)
+		}
 		allowed, requiredVersion, policyErr := runner.Updater.OfflineLaunchAllowed()
 		if policyErr != nil {
 			return result, fmt.Errorf("cannot evaluate offline policy: %w", policyErr)
@@ -84,6 +90,7 @@ func (runner *Runner) Run(ctx context.Context) (RunResult, error) {
 		launch = func(path string, args []string) error {
 			command := exec.Command(path, args...)
 			command.Dir = runner.Updater.InstallDir
+			command.Env = managedLaunchEnvironment()
 			command.Stdin = os.Stdin
 			command.Stdout = os.Stdout
 			command.Stderr = os.Stderr
@@ -113,6 +120,18 @@ func (runner *Runner) Run(ctx context.Context) (RunResult, error) {
 		_ = runner.Updater.RecordLastError(nil)
 	}
 	return result, nil
+}
+
+func managedLaunchEnvironment() []string {
+	environment := make([]string, 0, len(os.Environ())+1)
+	for _, entry := range os.Environ() {
+		key, _, _ := strings.Cut(entry, "=")
+		if strings.EqualFold(key, "THAPPY_MANAGED_LAUNCH") {
+			continue
+		}
+		environment = append(environment, entry)
+	}
+	return append(environment, "THAPPY_MANAGED_LAUNCH=1")
 }
 
 func (runner *Runner) clientPath() (string, error) {

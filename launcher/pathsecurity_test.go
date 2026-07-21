@@ -24,3 +24,38 @@ func TestDeletePolicyPreservesUserData(t *testing.T) {
 		t.Fatal("expected delete outside local allowlist to be rejected")
 	}
 }
+
+func TestDefaultDeletePolicyRejectsBroadRoots(t *testing.T) {
+	for _, forbidden := range []string{"bin/", "data/", "modules/", "mods/"} {
+		config := DefaultConfig()
+		config.DeleteAllowlist = append(config.DeleteAllowlist, forbidden)
+		if err := config.Validate(); err == nil {
+			t.Fatalf("expected broad delete rule %q to be rejected", forbidden)
+		}
+	}
+
+	config := DefaultConfig()
+	if err := config.Validate(); err != nil {
+		t.Fatalf("default delete policy must remain valid: %v", err)
+	}
+}
+
+func TestUpdateCannotReplaceLauncherExecutable(t *testing.T) {
+	preserved := append(DefaultConfig().PreservePaths, "ThappyLauncher.exe", "thappy-launcher")
+	for _, executable := range []string{"ThappyLauncher.exe", "thappy-launcher"} {
+		files := []ExtractedFile{{RelativePath: executable, SourcePath: "unused"}}
+		if _, err := buildOperations(files, nil, nil, preserved); err == nil {
+			t.Fatalf("expected launcher replacement %q to be rejected", executable)
+		}
+	}
+}
+
+func TestConfigCannotWeakenMandatoryPreservePolicy(t *testing.T) {
+	for _, paths := range [][]string{nil, {"config.otml"}} {
+		config := DefaultConfig()
+		config.PreservePaths = paths
+		if err := config.Validate(); err == nil {
+			t.Fatalf("expected incomplete preserve policy %v to be rejected", paths)
+		}
+	}
+}
