@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "channel": "test",
+  "version": "0.1.1-rc.1",
+  "protocol_version": 1525,
+  "asset_version": "1525",
+  "release_notes_url": "https://github.com/ecantillano/otclient/releases/tag/client-v0.1.1-rc.1",
+  "mandatory": false,
+  "environment": "test",
+  "login_url": "https://login.thappy.cl/login.php",
+  "login_port": 443,
+  "http_login": false,
+  "use_authenticator": false,
+  "minimum_launcher_version": "0.1.0",
+  "components": [
+    {
+      "name": "core-linux",
+      "version": "0.1.1-rc.1",
+      "platforms": ["linux"],
+      "url": "https://github.com/ecantillano/otclient/releases/download/client-v0.1.1-rc.1/Thappy-Linux-x86_64-0.1.1-rc.1-core.zip",
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "size": 1,
+      "archive": "zip",
+      "target": "."
+    }
+  ],
+  "delete": []
+}

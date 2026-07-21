@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {"name": "valid_production_package", "expected": "pass"},
+    {"name": "locale_boton_is_not_bot", "expected": "pass"},
+    {"name": "purge_only_settings_migration", "expected": "pass"},
+    {"name": "launcher_config_purge_only", "expected": "pass"},
+    {"name": "game_bot_module_path", "expected": "fail"},
+    {"name": "bot_button_reference", "expected": "fail"},
+    {"name": "modern_ui_module", "expected": "fail"},
+    {"name": "pdb_or_elf_debug_symbols", "expected": "fail"},
+    {"name": "duplicate_runtime_library", "expected": "fail"},
+    {"name": "private_production_endpoint", "expected": "fail"},
+    {"name": "wrong_production_protocol", "expected": "fail"},
+    {"name": "source_or_build_tree", "expected": "fail"},
+    {"name": "size_regression_over_ten_percent", "expected": "fail"},
+    {"name": "broad_delete_root", "expected": "fail"},
+    {"name": "release_docs_match_workflow", "expected": "pass"},
+    {"name": "workflow_retries_cmake_configure", "expected": "pass"},
+    {"name": "windows_release_uses_msvc", "expected": "pass"},
+    {"name": "checksums_are_cross_platform_lf", "expected": "pass"}
+  ]
+}

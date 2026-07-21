@@ -24,19 +24,7 @@ local statsCache = {
     mitigation = 0,
     dodge = 0,
     damageReflection = 0,
-    combatAbsorbValues = {
-        [0] = 0, -- physicalResist
-        [1] = 0, -- fireResist
-        [2] = 0, -- earthResist
-        [3] = 0, -- energyResist
-        [4] = 0, -- IceResist
-        [5] = 0, -- HolyResist
-        [6] = 0, -- deathResist
-        [7] = 0, -- HealingResist
-        [8] = 0, -- drowResist
-        [9] = 0, -- lifedrainResist
-        [10] = 0 -- manadRainResist
-    },
+    combatAbsorbValues = {},
     momentum = 0,
     transcendence = 0,
     amplification = 0
@@ -139,9 +127,7 @@ local SKILL_GROUPS = {
         'lifeLeech', 'manaLeech', 'criticalChance', 'criticalExtraDamage', 'onslaught'
     },
     defence = {
-        'physicalResist', 'fireResist', 'earthResist', 'energyResist', 'IceResist', 
-        'HolyResist', 'deathResist', 'HealingResist', 'drowResist', 'lifedrainResist', 
-        'manadRainResist', 'defenceValue', 'armorValue', 'mantraValue', 'mitigation', 'dodge', 
+        'defenceValue', 'armorValue', 'mantraValue', 'mitigation', 'dodge',
         'damageReflection'
     },
     misc = {
@@ -765,13 +751,10 @@ function update()
     else
         regenerationTime:show()
     end
-    local xpBoostButton = skillsWindow:recursiveGetChildById('xpBoostButton')
     local xpGainRate = skillsWindow:recursiveGetChildById('xpGainRate')
     if g_game.getFeature(GameExperienceBonus) then
-        xpBoostButton:show()
         xpGainRate:show()
     else
-        xpBoostButton:setVisible(false)
         xpGainRate:setVisible(false)
     end
 end
@@ -1348,9 +1331,7 @@ local function setSkillValueWithTooltips(id, value, tooltip, showPercentage, col
             'skillId13', 'skillId14', 'skillId15', 'skillId16',
             'damageHealing', 'attackValue', 'convertedDamage', 'convertedElement',
             'criticalHit', 'lifeLeech', 'manaLeech', 'criticalChance', 'criticalExtraDamage', 'onslaught',
-            'physicalResist', 'fireResist', 'earthResist', 'energyResist', 'IceResist', 
-            'HolyResist', 'deathResist', 'HealingResist', 'drowResist', 'lifedrainResist', 
-            'manadRainResist', 'defenceValue', 'armorValue', 'mantraValue', 'mitigation', 'dodge', 
+            'defenceValue', 'armorValue', 'mantraValue', 'mitigation', 'dodge',
             'damageReflection', 'momentum', 'transcendence', 'amplification'
         }
         
@@ -1499,35 +1480,10 @@ function onImbuementsChange(localPlayer, lifeLeech, manaLeech, critChance, critD
     end
 end
 
-local combatIdToWidgetId = {
-    [0] = "physicalResist",
-    [1] = "fireResist",
-    [2] = "earthResist",
-    [3] = "energyResist",
-    [4] = "IceResist",
-    [5] = "HolyResist",
-    [6] = "deathResist",
-    [7] = "HealingResist",
-    [8] = "drowResist",
-    [9] = "lifedrainResist",
-    [10] = "manadRainResist"
-}
-
 function onCombatAbsorbValuesChange(localPlayer, absorbValues)
-    -- Cache the data regardless of visibility
+    -- Protocol data remains accepted, but the modern Bestiary resistance panel
+    -- is intentionally absent from the retro UI.
     statsCache.combatAbsorbValues = absorbValues or {}
-    
-    for id, widgetId in pairs(combatIdToWidgetId) do
-        local skill = skillsWindow:recursiveGetChildById(widgetId)
-        if skill then
-                local value = absorbValues[id]
-                if value ~= nil then
-                    setSkillValueWithTooltips(widgetId, value, false, true, "#44AD25")
-                else
-                    skill:setVisible(false)
-                end
-        end
-    end
 end
 
 function onDefenseInfoChange(localPlayer, defense, armor, mantra, mitigation, dodge, damageReflection)

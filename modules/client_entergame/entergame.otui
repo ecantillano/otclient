@@ -22,6 +22,7 @@ ServerListButton < UIButton
 
 EnterGameWindow
   id: enterGame
+  text: Thappy
   &authenticatorEnabled: false
   &authenticatorHeight: 44
   &stayLoggedBoxEnabled: false
@@ -132,23 +133,25 @@ EnterGameWindow
     anchors.top: prev.bottom
     margin-top: 8
     text-auto-resize: true
+    visible: false
 
   ServerListButton
     id: serverListButton
-    !tooltip: tr('Server list')
     anchors.right: parent.right
     anchors.top: serverLabel.bottom
     margin-top: 3
-    @onClick: EnterGame.showServerList()
+    visible: false
+    enabled: false
 
   TextEdit
     id: serverHostTextEdit
-    !tooltip: tr('Make sure that your client uses\nthe correct game client version')
     anchors.left: parent.left
     anchors.right: serverListButton.left
     anchors.top: serverLabel.bottom
     margin-top: 2
     margin-right: 4
+    visible: false
+    enabled: false
 
   MenuLabel
     id: clientLabel
@@ -158,6 +161,7 @@ EnterGameWindow
     text-auto-resize: true
     margin-right: 10
     margin-top: 8
+    visible: false
 
   ComboBox
     id: clientComboBox
@@ -170,6 +174,8 @@ EnterGameWindow
     menu-scroll: true
     menu-height: 125
     menu-scroll-step: 25
+    visible: false
+    enabled: false
 
   MenuLabel
     id: portLabel
@@ -178,14 +184,17 @@ EnterGameWindow
     anchors.top: serverHostTextEdit.bottom
     margin-top: 8
     text-auto-resize: true
+    visible: false
 
   TextEdit
     id: serverPortTextEdit
-    text: 7171
+    text: 443
     anchors.right: parent.right
     anchors.left: parent.horizontalCenter
     anchors.top: clientComboBox.top
     margin-left: 3
+    visible: false
+    enabled: false
 
   QtCheckBox
     id: autoLoginBox
@@ -199,13 +208,14 @@ EnterGameWindow
 
   QtCheckBox
     id: httpLoginBox
-    enabled: true
+    enabled: false
     !text: tr('Enable HTTP login')
     !tooltip: tr('If login fails using HTTPS (encrypted) try with HTTP (unencrypted)')
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: prev.bottom
     margin-top: 2
+    visible: false
 
   HorizontalSeparator
     anchors.left: parent.left

@@ -4,7 +4,7 @@ Module
   author: baxnie, edubart
   website: https://github.com/edubart/otclient
   sandboxed: true
-  scripts: [ skills, offlinetraining1524 ]
+  scripts: [ skills ]
   @onLoad: skillController:init()
   @onUnload: skillController:terminate()
   dependencies:

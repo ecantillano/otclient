@@ -869,13 +869,6 @@ function configureButtonMouseRelease(button)
                     clearButton(button, true)
                 end)
             end
-            if button.item and button.item:getItemId() > 100 then
-                if modules.game_bot then
-                    menu:addSeparator()
-                    local useThingId = button.item:getItemId()
-                    menu:addOption("ID: " .. useThingId, function() g_window.setClipboardText(useThingId) end)
-                end
-            end
             menu:display(mousePos)
         end
     end

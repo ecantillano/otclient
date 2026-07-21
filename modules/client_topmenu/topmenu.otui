@@ -60,6 +60,7 @@ TopMenuPanel
     anchors.verticalCenter: parent.verticalCenter
     anchors.horizontalCenter: parent.horizontalCenter
     size: 100 32
+    visible: false
 
     Panel
       image-source: /images/icons/icon_players
@@ -80,7 +81,8 @@ TopMenuPanel
     anchors.verticalCenter: parent.verticalCenter
     anchors.left: parent.left
     margin-left: 10
-    size: 110 32
+    size: 0 0
+    visible: false
 
     UIWidget
       id: discordIcon
@@ -110,7 +112,8 @@ TopMenuPanel
     anchors.verticalCenter: parent.verticalCenter
     anchors.left: topLeftDiscord.right
     margin-left: 10
-    size: 100 32
+    size: 0 0
+    visible: false
 
     UIWidget
       id: youtubeIcon

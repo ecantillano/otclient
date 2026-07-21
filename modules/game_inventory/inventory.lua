@@ -318,7 +318,6 @@ function inventoryController:onGameStart()
     refreshInventory_panel()
 
     local elements = {
-        {inventoryController.ui.offPanel.blessings, inventoryController.ui.onPanel.blessings},
         {inventoryController.ui.offPanel.expert, inventoryController.ui.onPanel.expert},
         {inventoryController.ui.onPanel.whiteDoveBox},
         {inventoryController.ui.onPanel.whiteHandBox},
@@ -326,13 +325,11 @@ function inventoryController:onGameStart()
         {inventoryController.ui.onPanel.redFistBox}
     }
     
-    local showBlessings = g_game.getClientVersion() >= 1000
     local showPVPMode = g_game.getFeature(GamePVPMode)
     
-    for i, elementGroup in ipairs(elements) do
-        local show = (i == 1 and showBlessings) or (i > 1 and showPVPMode)
+    for _, elementGroup in ipairs(elements) do
         for _, element in ipairs(elementGroup) do
-            if show then
+            if showPVPMode then
                 element:show()
             else
                 element:hide()
@@ -549,5 +546,5 @@ function toggleAdventurerStyle(hasBlessing)
 end
 
 function getButtonBlessings()
-    return getInventoryUi().blessings
+    return nil
 end

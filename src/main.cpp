@@ -37,6 +37,16 @@
 #endif
 #include <iostream>
 #include <ctime>
+#include <cstdlib>
+#include <filesystem>
+
+#if !defined(ANDROID) && defined(_WIN32)
+#include <windows.h>
+#elif !defined(ANDROID)
+#include <fcntl.h>
+#include <sys/file.h>
+#include <unistd.h>
+#endif
 
 #ifndef ANDROID
 #if ENABLE_DISCORD_RPC == 1
@@ -55,6 +65,83 @@ extern "C" {
 #endif
 
 namespace {
+
+#ifndef ANDROID
+class InstallRunLock
+{
+public:
+    InstallRunLock() = default;
+    InstallRunLock(const InstallRunLock&) = delete;
+    InstallRunLock& operator=(const InstallRunLock&) = delete;
+
+    ~InstallRunLock()
+    {
+#ifdef _WIN32
+        if (m_handle != INVALID_HANDLE_VALUE) {
+            UnlockFileEx(m_handle, 0, 1, 0, &m_overlapped);
+            CloseHandle(m_handle);
+        }
+#else
+        if (m_fd >= 0) {
+            flock(m_fd, LOCK_UN);
+            close(m_fd);
+        }
+#endif
+    }
+
+    bool acquire(const std::string& workDir)
+    {
+        std::error_code ec;
+        const auto stateDir = std::filesystem::path(workDir) / ".thappy-launcher";
+        std::filesystem::create_directories(stateDir, ec);
+        if (ec)
+            return false;
+        const auto lockPath = stateDir / "launcher.lock";
+#ifdef _WIN32
+        m_handle = CreateFileW(
+            lockPath.wstring().c_str(),
+            GENERIC_READ | GENERIC_WRITE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            nullptr,
+            OPEN_ALWAYS,
+            FILE_ATTRIBUTE_NORMAL,
+            nullptr
+        );
+        if (m_handle == INVALID_HANDLE_VALUE)
+            return false;
+        if (!LockFileEx(m_handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, 1, 0, &m_overlapped)) {
+            CloseHandle(m_handle);
+            m_handle = INVALID_HANDLE_VALUE;
+            return false;
+        }
+#else
+        m_fd = open(lockPath.c_str(), O_CREAT | O_RDWR, 0600);
+        if (m_fd < 0)
+            return false;
+        if (flock(m_fd, LOCK_EX | LOCK_NB) != 0) {
+            close(m_fd);
+            m_fd = -1;
+            return false;
+        }
+#endif
+        return true;
+    }
+
+private:
+#ifdef _WIN32
+    HANDLE m_handle{ INVALID_HANDLE_VALUE };
+    OVERLAPPED m_overlapped{};
+#else
+    int m_fd{ -1 };
+#endif
+};
+
+bool isManagedLauncherRun()
+{
+    const char* managed = std::getenv("THAPPY_MANAGED_LAUNCH");
+    return managed && std::string_view(managed) == "1";
+}
+#endif
 
 bool shouldShowHelp(const std::vector<std::string>& args)
 {
@@ -129,8 +216,8 @@ int main(const int argc, const char* argv[])
     g_resources.init(args[0].data());
 #endif
 
-    // a --user-dir override isolates all persisted state (configs, remember
-    // password, bot profiles) under a caller-chosen dir; set before init.lua
+    // a --user-dir override isolates all persisted state (configs and remembered
+    // credentials) under a caller-chosen dir; set before init.lua
     // resolves the write dir via setupUserWriteDir. see #1540
     if (const auto userDir = parseUserDir(args); !userDir.empty()) {
         g_resources.setUserDirOverride(userDir);
@@ -162,6 +249,13 @@ int main(const int argc, const char* argv[])
         printHelp(args[0]);
         return 0;
     }
+
+#ifndef ANDROID
+    InstallRunLock installRunLock;
+    if (!isManagedLauncherRun() && !installRunLock.acquire(g_resources.getWorkDir())) {
+        g_logger.fatal("Thappy cannot start while the launcher is updating or another client is running.");
+    }
+#endif
 
 #ifdef FRAMEWORK_EDITOR
     if (const auto dumpRequest = datdump::parseRequest(args); dumpRequest) {

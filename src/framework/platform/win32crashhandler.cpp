@@ -39,6 +39,7 @@
 #endif
 
 #include <framework/core/graphicalapplication.h>
+#include <framework/core/resourcemanager.h>
 
 const char* getExceptionName(const DWORD exceptionCode)
 {
@@ -168,14 +169,8 @@ LONG CALLBACK ExceptionHandler(const LPEXCEPTION_POINTERS e)
 
     g_logger.info(oss.str());
 
-    char dir[MAX_PATH];
-    DWORD len = GetCurrentDirectory(sizeof(dir), dir);
-    if (len == 0 || len >= sizeof(dir)) {
-        g_logger.error("Failed to get current directory for crash report");
-        return EXCEPTION_CONTINUE_SEARCH;
-    }
-
-    std::string fileName = fmt::format("{}\\crashreport.log", dir);
+    const auto& writeDir = g_resources.getWriteDir();
+    const std::string fileName = writeDir.empty() ? "crashreport.log" : writeDir + "/crashreport.log";
 
     std::ofstream fout(fileName, std::ios::out | std::ios::app);
     if (fout.is_open()) {

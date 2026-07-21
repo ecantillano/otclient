@@ -1,133 +1,75 @@
--- this is the first file executed when the application starts
--- we have to load the first modules form here
+-- First file executed when the application starts.
 
--- updater
-Services = {
-    --updater = "http://localhost/api/updater.php", --./updater
-    --status = "http://localhost/login.php", --./client_entergame | ./client_topmenu
-    --websites = "http://localhost/?subtopic=accountmanagement", --./client_entergame "Forgot password and/or email"
-    --createAccount = "http://localhost/clientcreateaccount.php", --./client_entergame -- createAccount.lua
-    --getCoinsUrl = "http://localhost/?subtopic=shop&step=terms", --./game_market
-    clientAssets = {
-        enabled = true,
-        repository = "dudantas/tibia-client",
-        installSounds = true,
-        strictManifestSha256 = true,
-        allowRawFallbackHashMismatch = false,
-        allowMissingPackedRawFallback = true,
-        preferArchive = true,
-        fallbackToArchiveOnManifestFailure = false,
-        installArchiveExtras = true,
-        archiveExtraPrefixes = { "bin" },
-        installPackagedFiles = true
-    }, -- ./client_assets
+local Environments = dofile('/config/environments.lua')
+local BuildConfig = dofile('/config/build_config.lua')
+local RetroModules = dofile('/config/retro_modules.lua')
+local SettingsMigration = dofile('/config/settings_migration.lua')
+
+local ActiveEnvironment = Environments[BuildConfig.environment]
+if not ActiveEnvironment or not ActiveEnvironment.configured then
+    error(string.format("Thappy environment '%s' is not configured", tostring(BuildConfig.environment)))
+end
+if BuildConfig.channel ~= ActiveEnvironment.channel then
+    error(string.format("Thappy build channel '%s' does not match environment channel '%s'",
+        tostring(BuildConfig.channel), tostring(ActiveEnvironment.channel)))
+end
+
+ThappyBuild = {
+    environment = BuildConfig.environment,
+    channel = ActiveEnvironment.channel,
+    loginUrl = ActiveEnvironment.loginUrl,
+    loginPort = ActiveEnvironment.loginPort,
+    protocolVersion = ActiveEnvironment.protocolVersion,
+    httpLogin = ActiveEnvironment.httpLogin,
+    useAuthenticator = ActiveEnvironment.useAuthenticator,
+    websiteUrl = ActiveEnvironment.websiteUrl,
+    supportUrl = ActiveEnvironment.supportUrl,
+    updateManifestUrl = ActiveEnvironment.updateManifestUrl,
+    clientVersion = BuildConfig.clientVersion,
+    assetVersion = BuildConfig.assetVersion,
+    buildCommit = BuildConfig.buildCommit,
+    buildDate = BuildConfig.buildDate
 }
 
---- Enables or disables the entire server configuration block.
--- Set to `false` to disable all configuration below.
-local ENABLE_SERVERS = true
-
----
--- @module Servers_init
--- Configuration table for all servers used by the system.
---
--- This entire block is conditionally enabled based on ENABLE_SERVERS.
--- When ENABLE_SERVERS == false, everything is ignored/disabled.
---
-
----
--- Server configuration system for multi-server or multi-world clients.
---
--- This structure allows a single client build to connect to multiple servers
--- without requiring duplicate client folders.
---
--- A server that hosts several worlds, or that provides a separate test environment,
--- can simply define additional entries inside this configuration table.
---
--- Instead of maintaining multiple client installations (one per world/server),
--- the client can switch between servers by selecting the desired configuration entry.
--- This simplifies testing, avoids redundant directories, and centralizes connection settings.
---
--- The ENABLE_SERVERS flag allows the entire configuration block to be enabled or disabled
--- without deleting or commenting out individual entries.
---
-
-Servers_init = {}
-
-if ENABLE_SERVERS then
-
-    ---
-    -- List of servers and their configuration parameters.
-    -- Each entry defines port, protocol, and authentication options.
-    -- @table Servers_init
-    --
-    Servers_init = {
-
-        -- Local login server
-        ---
-        -- Configuration for local login server.
-        -- @class table
-        -- @name local_login
-        -- @field port Port used for HTTP connection
-        -- @field protocol Protocol identifier used by the application
-        -- @field httpLogin Enables HTTP-based login on the server
-        -- @field useAuthenticator Enables additional authentication layer
-        --
-        ["http://127.0.0.1/login.php"] = {
-            port = 80,
-            protocol = 1511,
-            httpLogin = true,
-            useAuthenticator = false
-        },
-
-        -- External server
-        ---
-        -- Configuration for external server ip.net.
-        -- @class table
-        -- @name ip_net
-        -- @field port TCP port used for connection
-        -- @field protocol Protocol identifier used by the server
-        -- @field httpLogin Indicates if the server allows HTTP login
-        --
-        ["ip.net"] = {
-            port = 7171,
-            protocol = 860,
-            httpLogin = false
-        }
+Services = {
+    websites = ActiveEnvironment.websiteUrl,
+    support = ActiveEnvironment.supportUrl,
+    updateManifest = ActiveEnvironment.updateManifestUrl,
+    clientAssets = {
+        -- Official releases never fetch third-party client data. Assets must be
+        -- installed from an independently authorized distribution.
+        enabled = false,
+        strictManifestSha256 = true,
+        allowRawFallbackHashMismatch = false
     }
-end
+}
 
-g_app.setName("OTClient - Redemption");
-g_app.setCompactName("otclient");
-g_app.setOrganizationName("otcr");
+-- The production profile resolves to exactly one immutable server. The login UI
+-- reads this table without exposing host, port, protocol or authentication flags.
+Servers_init = ActiveEnvironment.servers
+
+g_app.setName('Thappy')
+g_app.setCompactName('thappy')
+g_app.setOrganizationName('Thappy')
 
 g_app.hasUpdater = function()
-    return (Services.updater and Services.updater ~= "" and g_modules.getModule("updater"))
+    return Services.updater and Services.updater ~= '' and g_modules.getModule('updater')
 end
 
--- setup logger
-g_logger.setLogFile(g_resources.getWorkDir() .. g_app.getCompactName() .. '.log')
-g_logger.info("Operating system: " .. g_platform.getOSName())
-
--- print first terminal message
+g_logger.info('Operating system: ' .. g_platform.getOSName())
 g_logger.info(g_app.getName() .. ' ' .. g_app.getVersion() .. ' rev ' .. g_app.getBuildRevision() .. ' (' ..
-    g_app.getBuildCommit() .. ') built on ' .. g_app.getBuildDate() .. ' for arch ' ..
-    g_app.getBuildArch())
+    g_app.getBuildCommit() .. ') built on ' .. g_app.getBuildDate() .. ' for arch ' .. g_app.getBuildArch())
 
--- setup lua debugger
-if os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" then
-    require("lldebugger").start()
-    g_logger.debug("Started LUA debugger.")
+if os.getenv('LOCAL_LUA_DEBUGGER_VSCODE') == '1' then
+    require('lldebugger').start()
+    g_logger.debug('Started LUA debugger.')
 else
-    g_logger.debug("LUA debugger not started (not launched with VSCode local-lua).")
+    g_logger.debug('LUA debugger not started (not launched with VSCode local-lua).')
 end
 
--- add data directory to the search path
 if not g_resources.addSearchPath(g_resources.getWorkDir() .. 'data', true) then
     g_logger.fatal('Unable to add data directory to the search path.')
 end
-
--- add modules directory to the search path
 if not g_resources.addSearchPath(g_resources.getWorkDir() .. 'modules', true) then
     g_logger.fatal('Unable to add modules directory to the search path.')
 end
@@ -135,56 +77,58 @@ end
 g_html.addGlobalStyle('/data/styles/html.css')
 g_html.addGlobalStyle('/data/styles/custom.css')
 
--- try to add mods path too
-g_resources.addSearchPath(g_resources.getWorkDir() .. 'mods', true)
-
--- setup directory for saving configurations
 g_resources.setupUserWriteDir(('%s/'):format(g_app.getCompactName()))
-
--- search all packages
+g_resources.migrateLegacyUserData('otcr', 'otclient')
+g_logger.setLogFile(g_resources.getWriteDir() .. '/thappy.log')
 g_resources.searchAndAddPackages('/', '.otpkg', true)
 
--- load settings
+local assetVersion = tonumber(ThappyBuild.assetVersion)
+local requiredAssetCatalogs = {
+    string.format('/data/things/%d/catalog-content.json', assetVersion),
+    string.format('/data/sounds/%d/catalog-sound.json', assetVersion)
+}
+local missingAssetCatalogs = {}
+for _, assetCatalog in ipairs(requiredAssetCatalogs) do
+    if not g_resources.fileExists(assetCatalog) then
+        table.insert(missingAssetCatalogs, assetCatalog)
+    end
+end
+if #missingAssetCatalogs > 0 then
+    g_logger.fatal(string.format(
+        'Thappy cannot start because authorized client assets are missing: %s. ' ..
+        'Install them at data/things/%d and data/sounds/%d; automatic downloads are disabled.',
+        table.concat(missingAssetCatalogs, ', '), assetVersion, assetVersion))
+end
+
 g_configs.loadSettings('/config.otml')
+SettingsMigration.sanitizeProduction(g_settings, ActiveEnvironment)
+g_configs.saveSettings()
 
 g_modules.discoverModules()
 
--- libraries modules 0-99
-g_modules.autoLoadModules(99)
+-- Explicit loading prevents optional upstream autoload flags from bypassing the
+-- official visual profile.
 g_modules.ensureModuleLoaded('corelib')
 g_modules.ensureModuleLoaded('gamelib')
 g_modules.ensureModuleLoaded('modulelib')
-g_modules.ensureModuleLoaded("startup")
+g_modules.ensureModuleLoaded('startup')
 
-g_modules.autoLoadModules(999)
-g_modules.ensureModuleLoaded('game_shaders') -- pre load
-
-local function loadModules()
-    -- client modules 100-499
-    g_modules.autoLoadModules(499)
-    g_modules.ensureModuleLoaded('client')
-
-    -- game modules 500-999
-    g_modules.autoLoadModules(999)
-    g_modules.ensureModuleLoaded('game_interface')
-
-    -- mods 1000-9999
-    g_modules.autoLoadModules(9999)
-    g_modules.ensureModuleLoaded('client_mods')
-
-    local script = '/' .. g_app.getCompactName() .. 'rc.lua'
-
-    if g_resources.fileExists(script) then
-        dofile(script)
+local function loadModuleList(moduleNames)
+    for _, moduleName in ipairs(moduleNames) do
+        g_modules.ensureModuleLoaded(moduleName)
     end
-
-    -- uncomment the line below so that modules are reloaded when modified. (Note: Use only mod dev)
-    -- g_modules.enableAutoReload()
 end
 
--- run updater, must use data.zip
+local function loadModules()
+    g_modules.ensureModuleLoaded('client')
+    loadModuleList(RetroModules.client)
+
+    g_modules.ensureModuleLoaded('game_interface')
+    loadModuleList(RetroModules.game)
+end
+
 if g_app.hasUpdater() then
-    g_modules.ensureModuleLoaded("updater")
+    g_modules.ensureModuleLoaded('updater')
     return Updater.init(loadModules)
 end
 

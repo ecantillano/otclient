@@ -261,7 +261,7 @@ return {
         action = function(value, options, controller, panels, extraWidgets)
             panels.gameMapPanel:setDrawNames(value)
 
-            if g_gameConfig.isDrawingInformationByWidget() then
+            if g_gameConfig.isDrawingInformationByWidget() and modules.game_creatureinformation then
                 modules.game_creatureinformation.toggleInformation()
             end
         end
@@ -271,7 +271,7 @@ return {
         action = function(value, options, controller, panels, extraWidgets)
             panels.gameMapPanel:setDrawHealthBars(value)
 
-            if g_gameConfig.isDrawingInformationByWidget() then
+            if g_gameConfig.isDrawingInformationByWidget() and modules.game_creatureinformation then
                 modules.game_creatureinformation.toggleInformation()
             end
         end
@@ -281,7 +281,7 @@ return {
         action = function(value, options, controller, panels, extraWidgets)
             panels.gameMapPanel:setDrawManaBar(value)
 
-            if g_gameConfig.isDrawingInformationByWidget() then
+            if g_gameConfig.isDrawingInformationByWidget() and modules.game_creatureinformation then
                 modules.game_creatureinformation.toggleInformation()
             end
         end
@@ -586,29 +586,10 @@ return {
                 'Opacity Missile: %s%%', value))
         end
     },
-    distFromCenScrollbar              = {
-        value = 0,
-        action = function(value, options, controller, panels, extraWidgets)
-            local bar = modules.game_healthcircle.optionPanel:recursiveGetChildById('distFromCenScrollbar')
-            bar:setText(tr('Distance: %s', bar:recursiveGetChildById('valueBar'):getValue()))
-            modules.game_healthcircle.setDistanceFromCenter(bar:recursiveGetChildById('valueBar'):getValue())
-        end
-    },
-    opacityScrollbar                  = {
-        value = 0,
-        action = function(value, options, controller, panels, extraWidgets)
-            local bar = modules.game_healthcircle.optionPanel:recursiveGetChildById('opacityScrollbar')
-            bar:setText(tr('Opacity: %s', bar:recursiveGetChildById('valueBar'):getValue() / 100))
-            modules.game_healthcircle.setCircleOpacity(bar:recursiveGetChildById('valueBar'):getValue() / 100)
-        end
-    },
-    profile                           = {
-        value = 1,
-    },
     rightJoystick                     = {
         value = false,
         action = function(value, options, controller, panels, extraWidgets)
-            if not g_platform.isMobile() then return end
+            if not g_platform.isMobile() or not modules.game_joystick or not modules.game_shortcuts then return end
             if value == true then
                 modules.game_shortcuts.getPanel():breakAnchors()
                 modules.game_shortcuts.getPanel():addAnchor(AnchorBottom, "parent", AnchorBottom)
@@ -679,154 +660,6 @@ return {
             listKeybindsComboBox(value)
         end
     },
-    graphicalCooldown = {
-        value = true,
-        action = function(value)
-            modules.game_actionbar.toggleCooldownOption()
-        end,
-    },
-    cooldownSecond = {
-        value = true,
-        action = function(value)
-            modules.game_actionbar.toggleCooldownOption()
-        end,
-    },
-    actionBarShowBottom1 = {
-        value = true,
-        action = function(value)
-            local allBox = modules.client_options.getOption("allActionBar13") or false
-            modules.game_actionbar.configureActionBar('actionBarShowBottom1', allBox and value)
-        end,
-    },
-    actionBarShowBottom2 = {
-        value = false,
-        action = function(value)
-            local allBox = modules.client_options.getOption("allActionBar13") or false
-            modules.game_actionbar.configureActionBar('actionBarShowBottom2', allBox and value)
-        end,
-    },
-    actionBarShowBottom3 = {
-        value = false,
-        action = function(value)
-            local allBox = modules.client_options.getOption("allActionBar13") or false
-            modules.game_actionbar.configureActionBar('actionBarShowBottom3', allBox and value)
-        end,
-    },
-    actionBarShowLeft1 = {
-        value = false,
-        action = function(value)
-            local allBox = modules.client_options.getOption("allActionBar46") or false
-            modules.game_actionbar.configureActionBar('actionBarShowLeft1', allBox and value)
-        end,
-    },
-    actionBarShowLeft2 = {
-        value = false,
-        action = function(value)
-            local allBox = modules.client_options.getOption("allActionBar46") or false
-            modules.game_actionbar.configureActionBar('actionBarShowLeft2', allBox and value)
-        end,
-    },
-    actionBarShowLeft3 = {
-        value = false,
-        action = function(value)
-            local allBox = modules.client_options.getOption("allActionBar46") or false
-            modules.game_actionbar.configureActionBar('actionBarShowLeft3', allBox and value)
-        end,
-    },
-    actionBarShowRight1 = {
-        value = false,
-        action = function(value)
-            local allBox = modules.client_options.getOption("allActionBar79") or false
-            modules.game_actionbar.configureActionBar('actionBarShowRight1', allBox and value)
-            return true
-        end,
-    },
-    actionBarShowRight2 = {
-        value = false,
-        action = function(value)
-            local allBox = modules.client_options.getOption("allActionBar79") or false
-            modules.game_actionbar.configureActionBar('actionBarShowRight2', allBox and value)
-        end,
-    },
-    actionBarShowRight3 = {
-        value = false,
-        action = function(value)
-            local allBox = modules.client_options.getOption("allActionBar79") or false
-            modules.game_actionbar.configureActionBar('actionBarShowRight3', allBox and value)
-        end,
-    },
-    allActionBar46 = {
-        value = false,
-        action = function(value)
-            local huds = {"actionBarShowLeft1", "actionBarShowLeft2", "actionBarShowLeft3"}
-            for _, actionBar in pairs(huds) do
-                local hud =  panels.actionbars:recursiveGetChildById(actionBar)
-                if value then
-                    hud:enable()
-                else
-                    hud:disable()
-                end
-                modules.game_actionbar.configureActionBar(actionBar, (value and hud:isChecked()))
-            end
-        end,
-    },
-    allActionBar13 = {
-        value = true,
-        action = function(value)
-            local huds = {"actionBarShowBottom1", "actionBarShowBottom2", "actionBarShowBottom3"}
-            for _, actionBar in pairs(huds) do
-                local hud =  panels.actionbars:recursiveGetChildById(actionBar)
-                if value then
-                    hud:enable()
-                else
-                    hud:disable()
-                end
-                modules.game_actionbar.configureActionBar(actionBar, (value and hud:isChecked()))
-            end
-        end,
-    },
-    allActionBar79 = {
-        value = false,
-        action = function(value)
-            local huds = {"actionBarShowRight1", "actionBarShowRight2", "actionBarShowRight3"}
-            for _, actionBar in pairs(huds) do
-                local hud = panels.actionbars:recursiveGetChildById(actionBar)
-                if value then
-                    hud:enable()
-                else
-                    hud:disable()
-                end
-                modules.game_actionbar.configureActionBar(actionBar, (value and hud:isChecked()))
-            end
-        end,
-    },
-    actionTooltip = {
-        value = true,
-        action = function(value)
-            modules.game_actionbar.updateVisibleOptions('tooltip', value)
-        end,
-    },
-    showSpellParameters = {
-        value = true,
-        action = function(value)
-            modules.game_actionbar.updateVisibleOptions('parameter', value)
-        end,
-    },
-    showHKObjectsBars = {
-        value = true,
-        action = function(value)
-            modules.game_actionbar.updateVisibleOptions('amount', value)
-        end,
-    },
-    showAssignedHKButton = {
-        value = true,
-        action = function(value)
-            modules.game_actionbar.updateVisibleOptions('hotkey', value)
-        end,
-    },
-    actionBarBottomLocked = false,
-    actionBarLeftLocked = false,
-    actionBarRightLocked = false,
     setOwnSpellEffectAlphaScroll = {
         value = 100,
         action = function(value, options, controller, panels, extraWidgets)

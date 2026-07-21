@@ -35,6 +35,7 @@ public:
 
     bool discoverWorkDir(const std::string& existentFile);
     bool setupUserWriteDir(const std::string& appWriteDirName);
+    bool migrateLegacyUserData(const std::string& legacyOrganization, const std::string& legacyApplication);
     void setUserDirOverride(const std::string& path) { m_userDirOverride = path; }
     bool setWriteDir(const std::string& writeDir, bool create = false);
 
@@ -71,6 +72,7 @@ public:
     std::string getRealPath(const std::string& path);
     std::string getBaseDir();
     std::string getUserDir();
+    std::string getPrefDir(const std::string& organization, const std::string& application);
     std::string getWriteDir() { return m_writeDir; }
     std::string getWorkDir() { return m_workDir; }
     std::deque<std::string> getSearchPaths() { return m_searchPaths; }

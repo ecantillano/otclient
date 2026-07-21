@@ -53,6 +53,6 @@ static constexpr float DEFAULT_DISPLAY_DENSITY = 1.f;
 #define SHOW_CHARACTER_LEVEL_RPC 1 // 1 to enable | 0 to disable
 #define SHOW_CHARACTER_WORLD_RPC 1 // 1 to enable | 0 to disable
 #define OFFLINE_RPC_TEXT "Selecting Character..." // Message at client startup | offline character
-#define STATE_RPC_TEXT "github.com/mehah/otclient" // State Text
+#define STATE_RPC_TEXT "thappy.cl" // State Text
 #define RPC_LARGE_IMAGE "rpc-logo" // Large Image Name (Imported to API)
-#define RPC_LARGE_TEXT "OTClient - Redemption" // Large Text (Text showed at tooltip large image)
+#define RPC_LARGE_TEXT "Thappy" // Large Text (Text showed at tooltip large image)

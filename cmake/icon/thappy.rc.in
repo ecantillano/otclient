@@ -1,0 +1,38 @@
+#include <windows.h>
+
+// Placeholder: reuse the authorized upstream icon until final Thappy artwork is approved.
+IDI_ICON1 ICON DISCARDABLE "@CMAKE_SOURCE_DIR@/cmake/icon/otcicon.ico"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION @THAPPY_FILE_VERSION@
+ PRODUCTVERSION @THAPPY_FILE_VERSION@
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS VS_FF_DEBUG
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS VOS__WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Thappy\0"
+            VALUE "FileDescription", "Thappy game client\0"
+            VALUE "FileVersion", "@VERSION@\0"
+            VALUE "InternalName", "Thappy\0"
+            VALUE "LegalCopyright", "OTClient contributors and Thappy contributors\0"
+            VALUE "OriginalFilename", "Thappy.exe\0"
+            VALUE "ProductName", "Thappy\0"
+            VALUE "ProductVersion", "@VERSION@\0"
+            VALUE "Comments", "Placeholder icon: authorized upstream OTClient icon\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

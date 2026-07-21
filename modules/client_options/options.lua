@@ -40,9 +40,6 @@ local buttons = { {
     }, {
         text = "Console",
         open = "interfaceConsole"
-    }, {
-        text = "Action Bars",
-        open = "actionbars"
     } }
 }, {
     text = "Graphics",
@@ -172,16 +169,6 @@ local function setupComboBox()
         setOption('framesRarity', comboBox:getCurrentOption().data)
     end
 
-    local profileCombobox = panels.misc:recursiveGetChildById('profile')
-
-    for i = 1, 10 do
-        profileCombobox:addOption(tostring(i), i)
-    end
-
-    profileCombobox.onOptionChange = function(comboBox, option)
-        setOption('profile', comboBox:getCurrentOption().data)
-    end
-
     for _, preset in ipairs(Keybind.presets) do
         listKeybindsPanel:addOption(preset)
     end
@@ -305,8 +292,6 @@ function controller:onInit()
     panels.interface = g_ui.loadUI('styles/interface/interface', controller.ui.optionsTabContent)
     panels.interfaceConsole = g_ui.loadUI('styles/interface/console', controller.ui.optionsTabContent)
     panels.interfaceHUD = g_ui.loadUI('styles/interface/HUD', controller.ui.optionsTabContent)
-    panels.actionbars = g_ui.loadUI('styles/interface/actionbars', controller.ui.optionsTabContent)
-
     panels.soundPanel = g_ui.loadUI('styles/sound/audio', controller.ui.optionsTabContent)
 
     panels.misc = g_ui.loadUI('styles/misc/misc', controller.ui.optionsTabContent)

@@ -204,18 +204,6 @@ function UIMiniWindow:setupOnStart()
     end
 
     self:fitOnParent()
-    if self:getId() == "botWindow" then
-        local parent = self:getParent()
-        local parentId = parent:getId()
-
-        if parentId == "gameLeftPanel" or
-            parentId == "gameLeftExtraPanel" or
-            parentId == "gameRightExtraPanel" then
-            if parent:isVisible() then
-                parent:setWidth(190)
-            end
-        end
-    end
 end
 
 function UIMiniWindow:onVisibilityChange(visible)
