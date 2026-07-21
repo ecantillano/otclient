@@ -2,7 +2,7 @@
 
 Fecha: 2026-07-21
 
-Los paquetes Windows y Linux producidos por el run CI 29852271609 pasaron
+Los paquetes Windows y Linux producidos por el run CI 29858920649 pasaron
 `scripts/test-production-config.py` y la inspección semántica del auditor.
 
 Configuración encontrada en ambos artefactos:

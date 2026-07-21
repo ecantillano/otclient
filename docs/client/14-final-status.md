@@ -15,7 +15,7 @@ builds, paquetes, launcher, CI y controles de release están completos.
 | Versión | `0.1.0` |
 | Protocolo | `1525` |
 | Assets | `1525`, catálogos no suministrados |
-| CI validado | run `29852271609`, Windows/Linux/gates/C++ verdes |
+| CI validado | run `29858920649`, Windows/Linux/gates/C++ verdes |
 | Windows | 28.57 MiB descargado, 48.80 MiB instalado |
 | Linux | 27.24 MiB descargado, 51.90 MiB instalado |
 | Baseline histórico | 163.15 MiB descargado, 728.60 MiB extraído |
