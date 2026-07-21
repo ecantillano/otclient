@@ -174,7 +174,9 @@ class PackagingTests(unittest.TestCase):
             self.assertEqual(report["size_gate"]["measured_budget"], int(full.stat().st_size * 1.10))
             self.assertEqual(set(report["components"]), {"bootstrap", "core", "modules", "data"})
             self.assertTrue(all(value["size_gate"]["budget"] is None for value in report["components"].values()))
-            self.assertEqual(len(Path(result["checksums"]).read_text(encoding="utf-8").splitlines()), 8)
+            checksum_bytes = Path(result["checksums"]).read_bytes()
+            self.assertEqual(len(checksum_bytes.decode("utf-8").splitlines()), 8)
+            self.assertNotIn(b"\r", checksum_bytes)
             sbom = json.loads(Path(result["sbom"]).read_text(encoding="utf-8"))
             file_ids = [item["SPDXID"] for item in sbom["files"]]
             self.assertEqual(len(file_ids), len(set(file_ids)))
@@ -407,7 +409,7 @@ class EvalSuiteTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
         result = json.loads(completed.stdout)
         self.assertEqual(result["passed"], result["total"])
-        self.assertEqual(result["total"], 17)
+        self.assertEqual(result["total"], 18)
 
 
 if __name__ == "__main__":

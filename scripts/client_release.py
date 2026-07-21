@@ -1455,9 +1455,11 @@ def build_packages(
         key=lambda item: item.name,
     )
     checksums_path = output_dir / "SHA256SUMS-{}.txt".format(platform)
-    checksums_path.write_text(
-        "".join("{}  {}\n".format(_file_sha256(path), path.name) for path in checksum_targets),
-        encoding="utf-8",
+    # SHA256SUMS is a transport contract shared by Windows and Unix tools.
+    # Writing bytes prevents Python's Windows text mode from turning LF into
+    # CRLF, which makes the trailing CR part of each filename for `shasum -c`.
+    checksums_path.write_bytes(
+        "".join("{}  {}\n".format(_file_sha256(path), path.name) for path in checksum_targets).encode("utf-8")
     )
     shutil.rmtree(str(generated_root))
     return {

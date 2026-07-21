@@ -17,6 +17,7 @@
     {"name": "broad_delete_root", "expected": "fail"},
     {"name": "release_docs_match_workflow", "expected": "pass"},
     {"name": "workflow_retries_cmake_configure", "expected": "pass"},
-    {"name": "windows_release_uses_msvc", "expected": "pass"}
+    {"name": "windows_release_uses_msvc", "expected": "pass"},
+    {"name": "checksums_are_cross_platform_lf", "expected": "pass"}
   ]
 }

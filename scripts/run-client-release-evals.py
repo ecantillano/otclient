@@ -181,6 +181,11 @@ end
         if any(value not in msvc_script for value in required):
             return "fail"
         return "pass"
+    if name == "checksums_are_cross_platform_lf":
+        release_script = (ROOT / "scripts" / "client_release.py").read_text(encoding="utf-8")
+        if "checksums_path.write_bytes(" not in release_script:
+            return "fail"
+        return "pass"
     raise ReleaseError("unknown eval case: {}".format(name))
 
 
