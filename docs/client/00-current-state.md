@@ -1,7 +1,9 @@
 # Estado actual del cliente
 
-Fecha del inventario: 2026-07-21  
-Repositorio inspeccionado: `ecantillano/otclient`  
+Fecha del inventario: 2026-07-21
+
+Repositorio inspeccionado: `ecantillano/otclient`
+
 Fork de: `opentibiabr/otclient`
 
 ## Estado Git

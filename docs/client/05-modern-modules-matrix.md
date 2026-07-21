@@ -1,6 +1,7 @@
 # Matriz de sistemas modernos
 
-Fecha de auditoría: 2026-07-21  
+Fecha de auditoría: 2026-07-21
+
 Perfil objetivo: Thappy retro sobre protocolo 1525.
 
 ## Regla aplicada

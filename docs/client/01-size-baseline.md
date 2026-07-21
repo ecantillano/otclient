@@ -1,6 +1,7 @@
 # Baseline de tamaño
 
-Fecha: 2026-07-21  
+Fecha: 2026-07-21
+
 Fuente: GitHub Actions run `29675622968`, artifact `windows-cmake-release`, ID `8439220333`.
 
 ## Resultado medido
