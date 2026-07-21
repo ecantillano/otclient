@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "channel": "stable",
+  "version": "0.1.0",
+  "protocol_version": 1525,
+  "asset_version": "1525",
+  "release_notes_url": "https://github.com/ecantillano/otclient/releases/tag/v0.1.0",
+  "mandatory": false,
+  "environment": "production",
+  "login_url": "https://login.thappy.cl/login.php",
+  "login_port": 443,
+  "http_login": false,
+  "use_authenticator": false,
+  "minimum_launcher_version": "0.1.0",
+  "components": [
+    {
+      "name": "core",
+      "version": "0.1.0",
+      "platforms": ["windows"],
+      "url": "https://github.com/ecantillano/otclient/releases/download/v0.1.0/thappy-core-windows-x64-0.1.0.zip",
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "size": 1,
+      "archive": "zip",
+      "target": "."
+    }
+  ],
+  "delete": []
+}

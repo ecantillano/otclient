@@ -1,0 +1,25 @@
+{
+  "semver": [
+    {"name": "stable", "input": "0.1.1", "valid": true},
+    {"name": "test prerelease", "input": "0.2.0-rc.1", "valid": true},
+    {"name": "leading zero", "input": "0.01.0", "valid": false},
+    {"name": "missing patch", "input": "1.2", "valid": false},
+    {"name": "prefixed version", "input": "v1.2.3", "valid": false}
+  ],
+  "paths": [
+    {"name": "module asset", "input": "modules/game_interface/main.lua", "valid": true},
+    {"name": "backslash traversal", "input": "..\\settings\\account.otml", "valid": false},
+    {"name": "drive path", "input": "C:\\Thappy\\client.exe", "valid": false},
+    {"name": "windows device", "input": "data/CON.txt", "valid": false},
+    {"name": "alternate data stream", "input": "data/client.dat:payload", "valid": false}
+  ],
+  "manifests": [
+    {"name": "stable protocol 1525", "mutation": "none", "valid": true},
+    {"name": "test environment", "mutation": "test_channel", "valid": true},
+    {"name": "legacy protocol", "mutation": "old_protocol", "valid": false},
+    {"name": "stable prerelease", "mutation": "stable_prerelease", "valid": false},
+    {"name": "wrong environment", "mutation": "wrong_environment", "valid": false},
+    {"name": "untrusted release notes", "mutation": "untrusted_notes", "valid": false},
+    {"name": "invalid endpoint flag", "mutation": "invalid_endpoint", "valid": false}
+  ]
+}

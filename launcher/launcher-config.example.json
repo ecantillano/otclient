@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "default_channel": "stable",
+  "channels": {
+    "stable": {
+      "manifest_url": "https://github.com/ecantillano/otclient/releases/latest/download/manifest-stable.json"
+    },
+    "test": {
+      "manifest_url": "https://github.com/ecantillano/otclient/releases/latest/download/manifest-test.json"
+    }
+  },
+  "allowed_hosts": [
+    "github.com",
+    "objects.githubusercontent.com",
+    "release-assets.githubusercontent.com",
+    "login.thappy.cl"
+  ],
+  "client_executables": {
+    "windows": "Thappy.exe",
+    "linux": "thappy"
+  },
+  "client_args": [],
+  "delete_allowlist": [
+    "bin/",
+    "data/",
+    "modules/",
+    "mods/",
+    "Thappy.exe",
+    "thappy"
+  ],
+  "preserve_paths": [
+    ".thappy-launcher/",
+    "launcher-config.json",
+    "config.otml",
+    "settings/",
+    "profiles/",
+    "screenshots/",
+    "records/",
+    "logs/",
+    "minimap/"
+  ]
+}
