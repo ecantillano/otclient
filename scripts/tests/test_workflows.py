@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
 RELEASE_DOC = ROOT / "docs" / "client" / "09-release-process.md"
+MSVC_BUILD = ROOT / "scripts" / "build-windows-msvc.ps1"
 
 
 class WorkflowContractTests(unittest.TestCase):
@@ -25,12 +26,14 @@ class WorkflowContractTests(unittest.TestCase):
         text = self.read("client-ci.yml")
         self.assertIn("build/windows-release/bin/Thappy.exe", text)
         self.assertIn("build/linux-release/bin/thappy", text)
-        self.assertIn("scripts/retry-cmake-configure.sh cmake --preset linux-debug", text)
+        self.assertIn("python scripts/retry-cmake-configure.py cmake --preset linux-debug", text)
         self.assertIn("ctest --preset linux-debug", text)
         self.assertIn("Verify vcpkg manifest baseline", text)
         self.assertIn("--budget 104857600", text)
         self.assertGreaterEqual(text.count('export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"'), 2)
-        self.assertGreaterEqual(text.count("scripts/retry-cmake-configure.sh cmake --preset"), 2)
+        self.assertGreaterEqual(text.count("python scripts/retry-cmake-configure.py cmake --preset"), 2)
+        self.assertIn("Configure and build true Release (Windows MSVC)", text)
+        self.assertIn("./scripts/build-windows-msvc.ps1", text)
         self.assertIn("releases/download/client-v${VERSION}", text)
         self.assertNotIn("contents: write", text)
 
@@ -42,7 +45,9 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("Release ${RELEASE_TAG} already exists; refusing to overwrite.", text)
         self.assertIn("manifest-${CHANNEL}.json", text)
         self.assertIn("Verify vcpkg manifest baseline", text)
-        self.assertIn("scripts/retry-cmake-configure.sh cmake --preset", text)
+        self.assertIn("python scripts/retry-cmake-configure.py cmake --preset", text)
+        self.assertIn("Configure and build true Release (Windows MSVC)", text)
+        self.assertIn("./scripts/build-windows-msvc.ps1", text)
         self.assertIn("--budget 104857600", text)
         self.assertIn("--draft", text)
         self.assertIn("--prerelease", text)
@@ -74,6 +79,21 @@ class WorkflowContractTests(unittest.TestCase):
         ):
             self.assertIn("{}:".format(name), workflow)
             self.assertIn("-f {}=".format(name), documentation)
+
+    def test_windows_release_initializes_msvc_and_rejects_path_fallbacks(self):
+        script = MSVC_BUILD.read_text(encoding="utf-8")
+        for value in (
+            "vswhere.exe",
+            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+            "Enter-VsDevShell",
+            "Get-Command cl.exe",
+            "$env:CC = 'cl.exe'",
+            "$env:CXX = 'cl.exe'",
+            "python scripts/retry-cmake-configure.py",
+            "cmake --build --preset $Preset --config Release --target otclient",
+        ):
+            self.assertIn(value, script)
+        self.assertNotIn("mingw", script.lower())
 
 
 if __name__ == "__main__":

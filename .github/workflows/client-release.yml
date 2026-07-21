@@ -209,13 +209,25 @@ jobs:
           test -x "$VCPKG_BIN"
           "$VCPKG_BIN" version
           echo "VCPKG_ROOT=${VCPKG_INSTALLATION_ROOT}" >> "$GITHUB_ENV"
-      - name: Configure and build true Release
+      - name: Configure true Release (Linux)
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"
-          scripts/retry-cmake-configure.sh cmake --preset "${{ matrix.preset }}" -DCMAKE_BUILD_TYPE=Release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_IPO=ON -DOTCLIENT_BUILD_TESTS=OFF
+          python scripts/retry-cmake-configure.py cmake --preset "${{ matrix.preset }}" -DCMAKE_BUILD_TYPE=Release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_IPO=ON -DOTCLIENT_BUILD_TESTS=OFF
+      - name: Configure and build true Release (Windows MSVC)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/build-windows-msvc.ps1 -Preset "${{ matrix.preset }}"
+      - name: Build true Release (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
           cmake --build --preset "${{ matrix.preset }}" --config Release --target otclient
-          if [ "${{ matrix.platform }}" = linux ]; then strip --strip-unneeded "${{ matrix.binary }}"; fi
+          strip --strip-unneeded "${{ matrix.binary }}"
+      - name: Build launcher
+        shell: bash
+        run: |
           mkdir -p launcher/bin
           GOOS="${{ matrix.platform }}" GOARCH=amd64 CGO_ENABLED=0 go build -C launcher -trimpath \
             -ldflags="-s -w -X main.buildVersion=${{ needs.validate.outputs.version }}" \

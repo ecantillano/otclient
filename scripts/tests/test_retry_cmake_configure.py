@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 import tempfile
 import textwrap
 import unittest
@@ -7,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-RETRY = ROOT / "scripts" / "retry-cmake-configure.sh"
+RETRY = ROOT / "scripts" / "retry-cmake-configure.py"
 
 
 class RetryCMakeConfigureTests(unittest.TestCase):
@@ -16,7 +17,7 @@ class RetryCMakeConfigureTests(unittest.TestCase):
         environment["THAPPY_CMAKE_CONFIGURE_ATTEMPTS"] = attempts
         environment["THAPPY_CMAKE_CONFIGURE_RETRY_DELAY_SECONDS"] = "0"
         return subprocess.run(
-            ["bash", str(RETRY), str(command)],
+            [sys.executable, str(RETRY), str(command)],
             check=False,
             capture_output=True,
             text=True,
@@ -47,7 +48,7 @@ class RetryCMakeConfigureTests(unittest.TestCase):
             environment["THAPPY_CMAKE_CONFIGURE_ATTEMPTS"] = "3"
             environment["THAPPY_CMAKE_CONFIGURE_RETRY_DELAY_SECONDS"] = "0"
             result = subprocess.run(
-                ["bash", str(RETRY), str(command)],
+                [sys.executable, str(RETRY), str(command)],
                 check=False,
                 capture_output=True,
                 text=True,

@@ -89,7 +89,7 @@ jobs:
         shell: bash
         run: |
           export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"
-          scripts/retry-cmake-configure.sh cmake --preset linux-debug
+          python scripts/retry-cmake-configure.py cmake --preset linux-debug
       - name: Build and run C++ tests
         shell: bash
         run: |
@@ -146,17 +146,23 @@ jobs:
           test -x "$VCPKG_BIN"
           "$VCPKG_BIN" version
           echo "VCPKG_ROOT=${VCPKG_INSTALLATION_ROOT}" >> "$GITHUB_ENV"
-      - name: Configure true Release
+      - name: Configure true Release (Linux)
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"
           echo "VCPKG_ROOT=${VCPKG_INSTALLATION_ROOT}" >> "$GITHUB_ENV"
-          scripts/retry-cmake-configure.sh cmake --preset "${{ matrix.preset }}" \
+          python scripts/retry-cmake-configure.py cmake --preset "${{ matrix.preset }}" \
             -DCMAKE_BUILD_TYPE=Release \
             -DTOGGLE_BIN_FOLDER=ON \
             -DOPTIONS_ENABLE_IPO=ON \
             -DOTCLIENT_BUILD_TESTS=OFF
-      - name: Build client
+      - name: Configure and build true Release (Windows MSVC)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/build-windows-msvc.ps1 -Preset "${{ matrix.preset }}"
+      - name: Build Linux client
+        if: runner.os == 'Linux'
         run: cmake --build --preset "${{ matrix.preset }}" --config Release --target otclient
       - name: Strip Linux client
         if: runner.os == 'Linux'

@@ -153,8 +153,32 @@ end
         release = (ROOT / ".github" / "workflows" / "client-release.yml").read_text(
             encoding="utf-8"
         )
-        invocation = "scripts/retry-cmake-configure.sh cmake --preset"
+        invocation = "python scripts/retry-cmake-configure.py cmake --preset"
         if ci.count(invocation) < 2 or invocation not in release:
+            return "fail"
+        return "pass"
+    if name == "windows_release_uses_msvc":
+        ci = (ROOT / ".github" / "workflows" / "client-ci.yml").read_text(encoding="utf-8")
+        release = (ROOT / ".github" / "workflows" / "client-release.yml").read_text(
+            encoding="utf-8"
+        )
+        msvc_script = (ROOT / "scripts" / "build-windows-msvc.ps1").read_text(
+            encoding="utf-8"
+        )
+        if any(
+            "./scripts/build-windows-msvc.ps1" not in workflow
+            for workflow in (ci, release)
+        ):
+            return "fail"
+        required = (
+            "vswhere.exe",
+            "Enter-VsDevShell",
+            "Get-Command cl.exe",
+            "$env:CC = 'cl.exe'",
+            "$env:CXX = 'cl.exe'",
+            "cmake --build --preset $Preset --config Release --target otclient",
+        )
+        if any(value not in msvc_script for value in required):
             return "fail"
         return "pass"
     raise ReleaseError("unknown eval case: {}".format(name))

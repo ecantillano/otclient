@@ -407,7 +407,7 @@ class EvalSuiteTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
         result = json.loads(completed.stdout)
         self.assertEqual(result["passed"], result["total"])
-        self.assertEqual(result["total"], 16)
+        self.assertEqual(result["total"], 17)
 
 
 if __name__ == "__main__":
