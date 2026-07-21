@@ -1,0 +1,311 @@
+name: Thappy Client Draft Release
+
+on:
+  push:
+    tags:
+      - "client-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: SemVer without the client-v prefix
+        required: true
+        type: string
+      asset_version:
+        description: Asset revision identifier
+        required: true
+        default: "1525"
+        type: string
+      channel:
+        description: Release channel
+        required: true
+        default: test
+        type: choice
+        options: [test, stable]
+      test_login_url:
+        description: Explicit test endpoint; required for test channel
+        required: false
+        type: string
+      test_login_port:
+        description: Explicit test port
+        required: false
+        default: "443"
+        type: string
+      test_website_url:
+        description: Explicit test website URL
+        required: false
+        type: string
+      test_support_url:
+        description: Explicit test support URL
+        required: false
+        type: string
+      test_manifest_url:
+        description: Explicit prerelease or static test manifest URL; releases/latest is forbidden
+        required: false
+        type: string
+      mandatory:
+        description: Mark update mandatory in manifest
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thappy-client-release-${{ github.ref }}-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      channel: ${{ steps.release.outputs.channel }}
+      asset_version: ${{ steps.release.outputs.asset_version }}
+      mandatory: ${{ steps.release.outputs.mandatory }}
+      test_login_url: ${{ steps.release.outputs.test_login_url }}
+      test_login_port: ${{ steps.release.outputs.test_login_port }}
+      test_website_url: ${{ steps.release.outputs.test_website_url }}
+      test_support_url: ${{ steps.release.outputs.test_support_url }}
+      test_manifest_url: ${{ steps.release.outputs.test_manifest_url }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Resolve and validate release contract
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISPATCH_VERSION: ${{ inputs.version }}
+          DISPATCH_ASSET_VERSION: ${{ inputs.asset_version }}
+          DISPATCH_CHANNEL: ${{ inputs.channel }}
+          DISPATCH_MANDATORY: ${{ inputs.mandatory }}
+          DISPATCH_TEST_LOGIN_URL: ${{ inputs.test_login_url }}
+          DISPATCH_TEST_LOGIN_PORT: ${{ inputs.test_login_port }}
+          DISPATCH_TEST_WEBSITE_URL: ${{ inputs.test_website_url }}
+          DISPATCH_TEST_SUPPORT_URL: ${{ inputs.test_support_url }}
+          DISPATCH_TEST_MANIFEST_URL: ${{ inputs.test_manifest_url }}
+          TAG_TEST_LOGIN_URL: ${{ vars.THAPPY_TEST_LOGIN_URL }}
+          TAG_TEST_LOGIN_PORT: ${{ vars.THAPPY_TEST_LOGIN_PORT }}
+          TAG_TEST_WEBSITE_URL: ${{ vars.THAPPY_TEST_WEBSITE_URL }}
+          TAG_TEST_SUPPORT_URL: ${{ vars.THAPPY_TEST_SUPPORT_URL }}
+          TAG_TEST_MANIFEST_URL: ${{ vars.THAPPY_TEST_MANIFEST_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            tag="$GITHUB_REF_NAME"
+            version="${tag#client-v}"
+            asset_version="$(tr -d '\r\n' < ASSET_VERSION)"
+            mandatory=false
+            test_login_url="$TAG_TEST_LOGIN_URL"
+            test_login_port="${TAG_TEST_LOGIN_PORT:-443}"
+            test_website_url="$TAG_TEST_WEBSITE_URL"
+            test_support_url="$TAG_TEST_SUPPORT_URL"
+            test_manifest_url="$TAG_TEST_MANIFEST_URL"
+            if [[ "$version" == *-rc.* ]]; then channel="test"; else channel="stable"; fi
+          else
+            version="$DISPATCH_VERSION"
+            tag="client-v${version}"
+            asset_version="$DISPATCH_ASSET_VERSION"
+            channel="$DISPATCH_CHANNEL"
+            mandatory="$DISPATCH_MANDATORY"
+            test_login_url="$DISPATCH_TEST_LOGIN_URL"
+            test_login_port="$DISPATCH_TEST_LOGIN_PORT"
+            test_website_url="$DISPATCH_TEST_WEBSITE_URL"
+            test_support_url="$DISPATCH_TEST_SUPPORT_URL"
+            test_manifest_url="$DISPATCH_TEST_MANIFEST_URL"
+            if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+              echo "Tag ${tag} already exists; refusing to overwrite." >&2
+              exit 1
+            fi
+          fi
+          python - "$tag" "$asset_version" <<'PY'
+          import re, sys
+          if not re.fullmatch(r'client-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc\.[1-9]\d*)?', sys.argv[1]):
+              raise SystemExit('tag must match client-vX.Y.Z or client-vX.Y.Z-rc.N')
+          if not re.fullmatch(r'[0-9A-Za-z._-]{1,64}', sys.argv[2]):
+              raise SystemExit('invalid asset version identifier')
+          PY
+          test "$(tr -d '\r\n' < VERSION)" = "$version"
+          if [ "$channel" = stable ]; then
+            [[ "$version" != *-rc.* ]] || { echo 'stable channel cannot use an rc tag' >&2; exit 1; }
+          else
+            [[ "$version" == *-rc.* ]] || { echo 'test channel requires an rc tag' >&2; exit 1; }
+            test -n "$test_login_url" && test -n "$test_login_port" && test -n "$test_website_url" && test -n "$test_support_url" && test -n "$test_manifest_url"
+            [[ "$test_manifest_url" != *'/releases/latest/'* ]] || { echo 'test manifest URL cannot use releases/latest' >&2; exit 1; }
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release ${tag} already exists; refusing to overwrite." >&2
+            exit 1
+          fi
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "channel=$channel"
+            echo "asset_version=$asset_version"
+            echo "mandatory=$mandatory"
+            echo "test_login_url=$test_login_url"
+            echo "test_login_port=$test_login_port"
+            echo "test_website_url=$test_website_url"
+            echo "test_support_url=$test_support_url"
+            echo "test_manifest_url=$test_manifest_url"
+          } >> "$GITHUB_OUTPUT"
+      - name: Packaging gate tests and evals
+        run: |
+          python -m py_compile scripts/*.py
+          python -m unittest discover -s scripts/tests -v
+          python scripts/run-client-release-evals.py
+
+  build:
+    needs: validate
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            platform: windows
+            preset: windows-release
+            binary: build/windows-release/bin/Thappy.exe
+            launcher: launcher/bin/ThappyLauncher.exe
+          - os: ubuntu-24.04
+            platform: linux
+            preset: linux-release
+            binary: build/linux-release/bin/thappy
+            launcher: launcher/bin/thappy-launcher
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: launcher/go.mod
+      - name: Install Linux package tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf autoconf-archive automake ccache libgl1-mesa-dev libglu1-mesa-dev \
+            libltdl-dev libtool libtool-bin libx11-dev libxcursor-dev libxi-dev \
+            libxinerama-dev libxrandr-dev linux-libc-dev make ninja-build perl pkg-config zstd
+      - name: Pin vcpkg to manifest baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          VCPKG_COMMIT="$(python -c 'import json; print(json.load(open("vcpkg.json"))["builtin-baseline"])')"
+          git -C "${VCPKG_INSTALLATION_ROOT}" fetch --depth 1 origin "$VCPKG_COMMIT"
+          git -C "${VCPKG_INSTALLATION_ROOT}" checkout --detach "$VCPKG_COMMIT"
+      - name: Configure and build true Release
+        shell: bash
+        run: |
+          export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"
+          cmake --preset "${{ matrix.preset }}" -DCMAKE_BUILD_TYPE=Release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_IPO=ON -DOTCLIENT_BUILD_TESTS=OFF
+          cmake --build --preset "${{ matrix.preset }}" --config Release --target otclient
+          if [ "${{ matrix.platform }}" = linux ]; then strip --strip-unneeded "${{ matrix.binary }}"; fi
+          mkdir -p launcher/bin
+          GOOS="${{ matrix.platform }}" GOARCH=amd64 CGO_ENABLED=0 go build -C launcher -trimpath \
+            -ldflags="-s -w -X main.buildVersion=${{ needs.validate.outputs.version }}" \
+            -o "${GITHUB_WORKSPACE}/${{ matrix.launcher }}" ./cmd/thappy-launcher
+      - name: Package, audit, and exercise update
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+          CHANNEL: ${{ needs.validate.outputs.channel }}
+          ASSET_VERSION: ${{ needs.validate.outputs.asset_version }}
+          MANDATORY: ${{ needs.validate.outputs.mandatory }}
+          TEST_LOGIN_URL: ${{ needs.validate.outputs.test_login_url }}
+          TEST_LOGIN_PORT: ${{ needs.validate.outputs.test_login_port }}
+          TEST_WEBSITE_URL: ${{ needs.validate.outputs.test_website_url }}
+          TEST_SUPPORT_URL: ${{ needs.validate.outputs.test_support_url }}
+          TEST_MANIFEST_URL: ${{ needs.validate.outputs.test_manifest_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          export SOURCE_DATE_EPOCH
+          args=(python scripts/package-client.py package
+            --source-root .
+            --binary "${{ matrix.binary }}"
+            --launcher-binary "${{ matrix.launcher }}"
+            --runtime-dir "$(dirname "${{ matrix.binary }}")"
+            --output-dir "dist/${{ matrix.platform }}"
+            --platform "${{ matrix.platform }}"
+            --version "$VERSION"
+            --asset-version "$ASSET_VERSION"
+            --budget 104857600
+            --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}"
+            --build-commit "$GITHUB_SHA")
+          if [ "$CHANNEL" = stable ]; then
+            args+=(--channel stable --environment production)
+          else
+            args+=(--channel test --environment test
+              --login-url "$TEST_LOGIN_URL" --login-port "$TEST_LOGIN_PORT" --protocol-version 1525
+              --http-login false --use-authenticator false --website-url "$TEST_WEBSITE_URL"
+              --support-url "$TEST_SUPPORT_URL" --update-manifest-url "$TEST_MANIFEST_URL")
+          fi
+          if [ "$MANDATORY" = true ]; then args+=(--mandatory); fi
+          "${args[@]}"
+          FULL="$(find "dist/${{ matrix.platform }}" -maxdepth 1 -type f \( -name 'Thappy-*.zip' -o -name 'Thappy-*.tar.zst' \) ! -name '*-bootstrap.zip' ! -name '*-core.zip' ! -name '*-modules.zip' ! -name '*-data.zip' ! -name '*-assets.zip' | head -n 1)"
+          test -n "$FULL"
+          ENVIRONMENT="test"
+          if [ "$CHANNEL" = stable ]; then ENVIRONMENT="production"; fi
+          python scripts/audit-client-package.py "$FULL" --environment "$ENVIRONMENT" --json-output "dist/${{ matrix.platform }}/audit-${{ matrix.platform }}.json"
+          python scripts/test-package.py "$FULL" --environment "$ENVIRONMENT"
+          python scripts/test-clean-install.py "$FULL" --platform "${{ matrix.platform }}" --environment "$ENVIRONMENT"
+          if [ "$CHANNEL" = stable ]; then python scripts/test-production-config.py "$FULL"; fi
+          python scripts/test-update.py --manifest "dist/${{ matrix.platform }}/manifest-${{ matrix.platform }}.json" --package-dir "dist/${{ matrix.platform }}" --platform "${{ matrix.platform }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: dist/${{ matrix.platform }}/
+          if-no-files-found: error
+
+  release:
+    needs: [validate, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: release-*
+          path: release-input
+      - name: Assemble immutable release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+          CHANNEL: ${{ needs.validate.outputs.channel }}
+          ASSET_VERSION: ${{ needs.validate.outputs.asset_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir release-dist
+          find release-input -type f -exec cp {} release-dist/ \;
+          CHANNEL_MANIFEST="release-dist/manifest-${CHANNEL}.json"
+          python scripts/package-client.py merge-manifests --output "$CHANNEL_MANIFEST" release-dist/manifest-windows.json release-dist/manifest-linux.json
+          (cd release-dist && find . -maxdepth 1 -type f ! -name 'SHA256SUMS.txt' -print0 | sort -z | xargs -0 shasum -a 256) > release-dist/SHA256SUMS.txt
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} already exists; refusing to overwrite." >&2
+            exit 1
+          fi
+          gh release create "$RELEASE_TAG" release-dist/* \
+            --target "$GITHUB_SHA" \
+            --title "Thappy ${VERSION} (${CHANNEL})" \
+            --notes "Draft Thappy client prerelease. Commit: ${GITHUB_SHA}. Protocol: 1525. Asset version: ${ASSET_VERSION}. Validate licenses, assets, hashes, clean-install evidence, and connection evidence before publication." \
+            --draft \
+            --prerelease

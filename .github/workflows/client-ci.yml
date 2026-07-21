@@ -1,0 +1,197 @@
+name: Thappy Client CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "config/**"
+      - "data/**"
+      - "evals/**"
+      - "launcher/**"
+      - "modules/**"
+      - "scripts/**"
+      - "src/**"
+      - "tests/**"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "VERSION"
+      - "ASSET_VERSION"
+      - ".github/workflows/client-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "config/**"
+      - "data/**"
+      - "evals/**"
+      - "launcher/**"
+      - "modules/**"
+      - "scripts/**"
+      - "src/**"
+      - "tests/**"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "VERSION"
+      - "ASSET_VERSION"
+      - ".github/workflows/client-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thappy-client-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: launcher/go.mod
+          cache-dependency-path: launcher/go.mod
+      - name: Python gate tests
+        run: |
+          python -m py_compile scripts/*.py
+          python -m unittest discover -s scripts/tests -v
+          python scripts/run-client-release-evals.py
+      - name: Launcher gate tests and evals
+        working-directory: launcher
+        run: go test ./...
+
+  cpp-tests:
+    needs: gate-tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install Linux test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf autoconf-archive automake ccache libgl1-mesa-dev libglu1-mesa-dev \
+            libltdl-dev libtool libtool-bin libx11-dev libxcursor-dev libxi-dev \
+            libxinerama-dev libxrandr-dev linux-libc-dev make ninja-build perl pkg-config
+      - name: Pin vcpkg to manifest baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          VCPKG_COMMIT="$(python -c 'import json; print(json.load(open("vcpkg.json"))["builtin-baseline"])')"
+          git -C "${VCPKG_INSTALLATION_ROOT}" fetch --depth 1 origin "$VCPKG_COMMIT"
+          git -C "${VCPKG_INSTALLATION_ROOT}" checkout --detach "$VCPKG_COMMIT"
+      - name: Configure Linux debug tests
+        shell: bash
+        run: |
+          export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"
+          cmake --preset linux-debug
+      - name: Build and run C++ tests
+        shell: bash
+        run: |
+          export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"
+          cmake --build --preset linux-debug --config Debug
+          ctest --preset linux-debug
+
+  build-package:
+    needs: [gate-tests, cpp-tests]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            platform: windows
+            preset: windows-release
+            binary: build/windows-release/bin/Thappy.exe
+            launcher: launcher/bin/ThappyLauncher.exe
+            package: Windows-x86_64
+          - os: ubuntu-24.04
+            platform: linux
+            preset: linux-release
+            binary: build/linux-release/bin/thappy
+            launcher: launcher/bin/thappy-launcher
+            package: Linux-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: launcher/go.mod
+          cache-dependency-path: launcher/go.mod
+      - name: Linux packaging dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf autoconf-archive automake ccache libgl1-mesa-dev libglu1-mesa-dev \
+            libltdl-dev libtool libtool-bin libx11-dev libxcursor-dev libxi-dev \
+            libxinerama-dev libxrandr-dev linux-libc-dev make ninja-build perl pkg-config zstd
+      - name: Pin vcpkg to manifest baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          VCPKG_COMMIT="$(python -c 'import json; print(json.load(open("vcpkg.json"))["builtin-baseline"])')"
+          git -C "${VCPKG_INSTALLATION_ROOT}" fetch --depth 1 origin "$VCPKG_COMMIT"
+          git -C "${VCPKG_INSTALLATION_ROOT}" checkout --detach "$VCPKG_COMMIT"
+      - name: Configure true Release
+        shell: bash
+        run: |
+          export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"
+          echo "VCPKG_ROOT=${VCPKG_INSTALLATION_ROOT}" >> "$GITHUB_ENV"
+          cmake --preset "${{ matrix.preset }}" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DTOGGLE_BIN_FOLDER=ON \
+            -DOPTIONS_ENABLE_IPO=ON \
+            -DOTCLIENT_BUILD_TESTS=OFF
+      - name: Build client
+        run: cmake --build --preset "${{ matrix.preset }}" --config Release --target otclient
+      - name: Strip Linux client
+        if: runner.os == 'Linux'
+        run: strip --strip-unneeded "${{ matrix.binary }}"
+      - name: Build launcher
+        shell: bash
+        run: |
+          mkdir -p launcher/bin
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          OUTPUT="${{ matrix.launcher }}"
+          GOOS="${{ matrix.platform }}" GOARCH=amd64 CGO_ENABLED=0 \
+            go build -C launcher -trimpath -ldflags="-s -w -X main.buildVersion=${VERSION}" \
+            -o "${GITHUB_WORKSPACE}/${OUTPUT}" ./cmd/thappy-launcher
+      - name: Package and audit production artifact
+        shell: bash
+        run: |
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          ASSET_VERSION="$(tr -d '\r\n' < ASSET_VERSION)"
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          export SOURCE_DATE_EPOCH
+          python scripts/package-client.py package \
+            --source-root . \
+            --binary "${{ matrix.binary }}" \
+            --launcher-binary "${{ matrix.launcher }}" \
+            --runtime-dir "$(dirname "${{ matrix.binary }}")" \
+            --output-dir "dist/${{ matrix.platform }}" \
+            --platform "${{ matrix.platform }}" \
+            --version "$VERSION" \
+            --asset-version "$ASSET_VERSION" \
+            --channel stable \
+            --environment production \
+            --budget 104857600 \
+            --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/client-v${VERSION}" \
+            --build-commit "$GITHUB_SHA"
+          FULL="dist/${{ matrix.platform }}/Thappy-${{ matrix.package }}-${VERSION}.$([ '${{ matrix.platform }}' = windows ] && echo zip || echo tar.zst)"
+          python scripts/audit-client-package.py "$FULL" --environment production --json-output "dist/${{ matrix.platform }}/audit-${{ matrix.platform }}.json"
+          python scripts/test-package.py "$FULL" --environment production
+          python scripts/test-clean-install.py "$FULL" --platform "${{ matrix.platform }}" --environment production
+          python scripts/test-production-config.py "$FULL"
+          python scripts/test-update.py --manifest "dist/${{ matrix.platform }}/manifest-${{ matrix.platform }}.json" --package-dir "dist/${{ matrix.platform }}" --platform "${{ matrix.platform }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: thappy-client-${{ matrix.platform }}
+          path: dist/${{ matrix.platform }}/
+          if-no-files-found: error
+          retention-days: 14
