@@ -47,12 +47,28 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # *****************************************************************************
 # Client
 # *****************************************************************************
+file(READ "${CMAKE_SOURCE_DIR}/VERSION" VERSION)
+string(STRIP "${VERSION}" VERSION)
+
 if (MSVC)
-  add_executable(${PROJECT_NAME} "" ../cmake/icon/otcicon.rc)
+  string(REPLACE "." "," THAPPY_VERSION_COMMA "${VERSION}")
+  set(THAPPY_FILE_VERSION "${THAPPY_VERSION_COMMA},0")
+  configure_file(
+    "${CMAKE_SOURCE_DIR}/cmake/icon/thappy.rc.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/thappy.rc"
+    @ONLY
+  )
+  add_executable(${PROJECT_NAME} "" "${CMAKE_CURRENT_BINARY_DIR}/thappy.rc")
 elseif(ANDROID)
   add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 else()
   add_executable(${PROJECT_NAME} "")
+endif()
+
+if(WIN32)
+  set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "Thappy")
+elseif(NOT ANDROID AND NOT APPLE AND NOT WASM)
+  set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "thappy")
 endif()
 
 if(NOT OTCLIENT_BUILD_CLIENT)
@@ -92,8 +108,6 @@ if (ANDROID)
 elseif(WASM)
   set(FRAMEWORK_DEFINITIONS ${FRAMEWORK_DEFINITIONS} -DOPENGL_ES=2)
 endif()
-
-set(VERSION "1.0.0")
 
 # *****************************************************************************
 # Definitions code

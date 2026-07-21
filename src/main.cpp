@@ -129,8 +129,8 @@ int main(const int argc, const char* argv[])
     g_resources.init(args[0].data());
 #endif
 
-    // a --user-dir override isolates all persisted state (configs, remember
-    // password, bot profiles) under a caller-chosen dir; set before init.lua
+    // a --user-dir override isolates all persisted state (configs and remembered
+    // credentials) under a caller-chosen dir; set before init.lua
     // resolves the write dir via setupUserWriteDir. see #1540
     if (const auto userDir = parseUserDir(args); !userDir.empty()) {
         g_resources.setUserDirOverride(userDir);

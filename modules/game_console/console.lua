@@ -2489,7 +2489,7 @@ function createButtonChat()
     extendedViewButtonToggleChat = g_ui.createWidget(stringNameMobileOrPc, mapPanel)
     extendedViewButtonToggleChat:setId("test")
     local hightMobileWidget = 0
-    if g_platform.isMobile() then
+    if g_platform.isMobile() and modules.game_joystick then
         hightMobileWidget = modules.game_joystick.getPanel():getHeight()
         extendedViewButtonToggleChat.image:setImageSource("/images/game/mobile/chat")
         extendedViewButtonToggleChat:addAnchor(AnchorRight, "parent", AnchorRight)

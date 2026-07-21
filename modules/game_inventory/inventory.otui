@@ -60,18 +60,6 @@ PhantomMiniWindow
       $pressed !disabled:
         image-clip: 12 0 12 12
 
-    Button
-      id: blessings
-      image-source: /images/inventory/button_blessings_grey
-      image-clip: 0 0 12 12
-      anchors.top: changeSize.top
-      anchors.left: changeSize.right
-      margin-left: 3
-      size: 12 12
-      @onClick: modules.game_blessing.toggle()
-      $pressed !disabled:
-        image-clip: 12 0 12 12
-
     UIButton
       id: purseButton
       image-source: /images/inventory/purse
@@ -568,24 +556,12 @@ PhantomMiniWindow
       $disabled:
         image-source: /data/images/inventory/button-expert-disabled
 
-    Button
-      id: blessings
-      image-source: /images/inventory/button_blessings_grey
-      image-clip: 0 0 12 12
-      anchors.top: expert.bottom
-      anchors.left: changeSize.left
-      margin-top: 3
-      size: 12 12
-      @onClick: modules.game_blessing.toggle()
-      $pressed !disabled:
-        image-clip: 12 0 12 12
-
     Panel
       id: icons
       anchors.left: soulAndCapacity.left
       anchors.right: pvp.right
       anchors.bottom: parent.bottom
-      anchors.top: blessings.top
+      anchors.top: expert.bottom
       phantom: false
       image-source: /images/ui/containerslot
       image-border: 3

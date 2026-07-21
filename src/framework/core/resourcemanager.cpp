@@ -33,8 +33,10 @@
 
 #ifndef USE_PRECOMPILED_HEADERS
 #include <array>
+#include <cctype>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #endif
 
 #include <lzma.h>
@@ -390,6 +392,100 @@ bool ResourceManager::setupUserWriteDir(const std::string& appWriteDirName)
         }
     }
     return setWriteDir(writeDir);
+}
+
+bool ResourceManager::migrateLegacyUserData(const std::string& legacyOrganization, const std::string& legacyApplication)
+{
+    // Explicit --user-dir profiles are isolated by contract and never import the
+    // machine's default OTClient profile.
+    if (!m_userDirOverride.empty() || m_writeDir.empty())
+        return true;
+
+    const std::filesystem::path targetRoot(m_writeDir);
+    const auto marker = targetRoot / ".thappy-legacy-migration-v1";
+    std::error_code ec;
+    if (std::filesystem::exists(marker, ec))
+        return true;
+
+    auto lower = [](std::string text) {
+        std::ranges::transform(text, text.begin(), [](const unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+        return text;
+    };
+    auto isForbidden = [&lower](const std::filesystem::path& relative) {
+        const auto path = lower(relative.generic_string());
+        static constexpr std::array forbidden = {
+            "game_bot", "vbot", "rvbot", "cavebot", "targetbot", "botserver",
+            "default_configs", "autoheal", "autoloot", "looter", "macro"
+        };
+        return std::ranges::any_of(forbidden, [&path](const std::string_view token) {
+            return path.find(token) != std::string::npos;
+        });
+    };
+    auto isAllowed = [&lower](const std::filesystem::path& relative) {
+        const auto path = lower(relative.generic_string());
+        const auto filename = lower(relative.filename().string());
+        if (path == "config.otml")
+            return true;
+        if (relative.begin() != relative.end()) {
+            const auto first = lower(relative.begin()->string());
+            if (first == "controls" || first == "screenshots" || first == "auto_screenshots")
+                return true;
+        }
+        if (path == "settings/outfit.json" || path == "settings/questtracking.json")
+            return true;
+        if (relative.parent_path().empty() && filename.starts_with("minimap")) {
+            const auto extension = lower(relative.extension().string());
+            return extension == ".otmm" || extension == ".otcm";
+        }
+        // Saved chat channels are the only normal root-level text exports.
+        return relative.parent_path().empty() && relative.extension() == ".txt";
+    };
+    auto copyAllowlisted = [&](const std::filesystem::path& sourceRoot) {
+        if (!std::filesystem::is_directory(sourceRoot, ec) || sourceRoot == targetRoot)
+            return;
+
+        for (std::filesystem::recursive_directory_iterator it(sourceRoot, std::filesystem::directory_options::skip_permission_denied, ec), end;
+             it != end; it.increment(ec)) {
+            if (ec) {
+                ec.clear();
+                continue;
+            }
+            if (!it->is_regular_file(ec) || it->is_symlink(ec))
+                continue;
+
+            const auto relative = it->path().lexically_relative(sourceRoot);
+            if (relative.empty() || isForbidden(relative) || !isAllowed(relative))
+                continue;
+
+            const auto target = targetRoot / relative;
+            if (std::filesystem::exists(target, ec))
+                continue;
+            std::filesystem::create_directories(target.parent_path(), ec);
+            if (ec) {
+                g_logger.warning("Unable to create legacy migration directory '{}': {}", target.parent_path().generic_string(), ec.message());
+                ec.clear();
+                continue;
+            }
+            std::filesystem::copy_file(it->path(), target, std::filesystem::copy_options::none, ec);
+            if (ec) {
+                g_logger.warning("Unable to migrate legacy user file '{}': {}", relative.generic_string(), ec.message());
+                ec.clear();
+            }
+        }
+    };
+
+    const std::filesystem::path legacyBase(getPrefDir(legacyOrganization, legacyApplication));
+    copyAllowlisted(legacyBase);
+    copyAllowlisted(legacyBase / legacyApplication);
+    copyAllowlisted(legacyBase / ("." + legacyApplication));
+
+    std::ofstream markerFile(marker, std::ios::out | std::ios::trunc);
+    if (!markerFile.is_open()) {
+        g_logger.warning("Unable to write legacy migration marker '{}'", marker.generic_string());
+        return false;
+    }
+    markerFile << "Thappy legacy profile migration v1\n";
+    return true;
 }
 
 bool ResourceManager::setWriteDir(const std::string& writeDir, bool)
@@ -750,10 +846,19 @@ std::string ResourceManager::getUserDir()
 #elif defined(__EMSCRIPTEN__)
     return "/user/";
 #else
-    static const char* orgName = g_app.getOrganizationName().data();
-    static const char* appName = g_app.getCompactName().data();
+    return getPrefDir(g_app.getOrganizationName(), g_app.getCompactName());
+#endif
+}
 
-    return PHYSFS_getPrefDir(orgName, appName);
+std::string ResourceManager::getPrefDir(const std::string& organization, const std::string& application)
+{
+#if defined(ANDROID)
+    return getBaseDir() + "/";
+#elif defined(__EMSCRIPTEN__)
+    return "/user/";
+#else
+    const char* prefDir = PHYSFS_getPrefDir(organization.c_str(), application.c_str());
+    return prefDir ? std::string(prefDir) : std::string{};
 #endif
 }
 

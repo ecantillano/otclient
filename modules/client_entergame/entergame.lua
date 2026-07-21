@@ -20,6 +20,23 @@ local tokenWindow
 local authErrorBox
 local hasAttemptedAuthenticator = false
 
+local function getOfficialServerSettings()
+    local servers = g_settings.getNode('ServerList') or {}
+    return servers[ThappyBuild.loginUrl] or {}
+end
+
+local function saveOfficialLogin(account, password, autologin)
+    local server = getOfficialServerSettings()
+    server.port = ThappyBuild.loginPort
+    server.protocol = ThappyBuild.protocolVersion
+    server.httpLogin = ThappyBuild.httpLogin
+    server.useAuthenticator = ThappyBuild.useAuthenticator
+    server.account = g_crypt.encrypt(account or '')
+    server.password = g_crypt.encrypt(password or '')
+    server.autologin = autologin == true
+    g_settings.setNode('ServerList', { [ThappyBuild.loginUrl] = server })
+end
+
 -- private functions
 local function onError(protocol, message, errorCode)
     if loadBox then
@@ -27,7 +44,7 @@ local function onError(protocol, message, errorCode)
         loadBox = nil
     end
 
-    if errorCode == 6 then
+    if errorCode == 6 and not enterGame.disableToken then
         if hasAttemptedAuthenticator then
             if authErrorBox then
               authErrorBox:destroy()
@@ -68,9 +85,6 @@ end
 local function onCharacterList(protocol, characters, account, otui)
     local httpLogin = enterGame:getChildById('httpLoginBox'):isChecked()
 
-    -- Try add server to the server list
-    ServerList.add(G.host, G.port, g_game.getClientVersion(), httpLogin)
-
     -- Save 'Stay logged in' setting
     g_settings.set('staylogged', enterGame:getChildById('stayLoggedBox'):isChecked())
     g_settings.set('httpLogin', httpLogin)
@@ -82,16 +96,11 @@ local function onCharacterList(protocol, characters, account, otui)
         g_settings.set('account', account)
         g_settings.set('password', password)
 
-        ServerList.setServerAccount(G.host, G.account)
-        ServerList.setServerPassword(G.host, G.password)
-        ServerList.setServerAutologin(G.host, enterGame:getChildById('autoLoginBox'):isChecked())
+        saveOfficialLogin(G.account, G.password, enterGame:getChildById('autoLoginBox'):isChecked())
 
         g_settings.set('autologin', enterGame:getChildById('autoLoginBox'):isChecked())
-        ServerList.save()
     else
-        -- reset server list account/password
-        ServerList.setServerAccount(G.host, '')
-        ServerList.setServerPassword(G.host, '')
+        saveOfficialLogin('', '', false)
 
         EnterGame.clearAccountFields()
     end
@@ -145,22 +154,13 @@ local function onUpdateNeeded(protocol, signature)
 end
 
 local function updateLabelText()
+    enterGame:setText('Thappy')
     if enterGame:getChildById('clientComboBox') and tonumber(enterGame:getChildById('clientComboBox'):getText()) > 1080 then
-        enterGame:setText("Journey Onwards")
         enterGame:getChildById('emailLabel'):setText("Email:")
         enterGame:getChildById('rememberEmailBox'):setText("Remember Email:")
     else
-        enterGame:setText("Enter Game")
         enterGame:getChildById('emailLabel'):setText("Acc Name:")
         enterGame:getChildById('rememberEmailBox'):setText("Remember password:")
-    end
-end
-
-local function loadServerListModule()
-    local module = g_modules.getModule('client_serverlist')
-
-    if module and not module:isLoaded() then
-        module:load()
     end
 end
 
@@ -175,23 +175,14 @@ function EnterGame.init()
       }
     })
 
-    local host = g_settings.get('host')
-    local port = g_settings.get('port')
+    local host = ThappyBuild.loginUrl
+    local port = ThappyBuild.loginPort
     local stayLogged = g_settings.getBoolean('staylogged')
     local autologin = g_settings.getBoolean('autologin')
-    local httpLogin = g_settings.getBoolean('httpLogin')
-    local clientVersion = g_settings.getInteger('client-version')
+    local httpLogin = ThappyBuild.httpLogin
+    local clientVersion = ThappyBuild.protocolVersion
 
-    if not clientVersion or clientVersion == 0 then
-        clientVersion = 860
-    end
-
-    if not port or port == 0 then
-        port = 7171
-    end
-
-    local servers = g_settings.getNode("ServerList") or {}
-    local serverData = servers[host] or {}
+    local serverData = getOfficialServerSettings()
     if serverData and serverData.account then
         EnterGame.setAccountName(serverData.account)
         EnterGame.setPassword(serverData.password)
@@ -254,17 +245,12 @@ function EnterGame.init()
             local password = enterGame:getChildById('accountPasswordTextEdit'):getText()
 
             if checked and #account > 0 then
-                ServerList.setServerAccount(host, account)
-                ServerList.setServerPassword(host, password)
-                ServerList.setServerAutologin(host, enterGame:getChildById('autoLoginBox'):isChecked() or false)
+                saveOfficialLogin(account, password, enterGame:getChildById('autoLoginBox'):isChecked() or false)
                 g_settings.set('host', host)
             else
-                ServerList.setServerAccount(host, '')
-                ServerList.setServerPassword(host, '')
-                ServerList.setServerAutologin(host, false)
+                saveOfficialLogin('', '', false)
             end
 
-            ServerList.save()
             g_configs.saveSettings()
         end
     })
@@ -303,33 +289,28 @@ function EnterGame.init()
 end
 
 function EnterGame.hidePanels()
-    if g_modules.getModule("client_bottommenu"):isLoaded()  then
+    if modules.client_bottommenu then
         modules.client_bottommenu.hide()
     end
     modules.client_topmenu.hide()
 end
 
 function EnterGame.showPanels()
-    if g_modules.getModule("client_bottommenu"):isLoaded()  then
+    if modules.client_bottommenu then
         modules.client_bottommenu.show()
     end
     modules.client_topmenu.show()
 end
 
 function EnterGame.showServerList()
-    loadServerListModule()
-
-    if ServerList then
-        ServerList.show()
-    end
+    -- The official production client has no server selector.
 end
 
 function EnterGame.firstShow()
     EnterGame.show()
 
-    local host = g_settings.get('host')
-    local servers = g_settings.getNode('ServerList') or {}
-    local serverData = servers[host] or {}
+    local host = ThappyBuild.loginUrl
+    local serverData = getOfficialServerSettings()
     local account = safeDecrypt(serverData.account)
     local password = safeDecrypt(serverData.password)
     local autologin = serverData.autologin == true
@@ -343,7 +324,7 @@ function EnterGame.firstShow()
     end
 
     if Services and Services.status then
-        if g_modules.getModule("client_bottommenu"):isLoaded()  then
+        if modules.client_bottommenu then
             EnterGame.postCacheInfo()
             EnterGame.postEventScheduler()
             -- EnterGame.postShowOff() -- myacc/znote no send login.php
@@ -462,8 +443,10 @@ function EnterGame.postEventScheduler()
             reportRequestWarning(requestType, response.errorMessage, response.errorCode)
             return
         end
-        modules.client_bottommenu.setEventsSchedulerTimestamp(response.lastupdatetimestamp)
-        modules.client_bottommenu.setEventsSchedulerCalender(response.eventlist)
+        if modules.client_bottommenu then
+            modules.client_bottommenu.setEventsSchedulerTimestamp(response.lastupdatetimestamp)
+            modules.client_bottommenu.setEventsSchedulerCalender(response.eventlist)
+        end
     end
 
     HTTP.post(Services.status, json.encode({
@@ -496,7 +479,9 @@ function EnterGame.postShowOff()
             return
         end
 
-        modules.client_bottommenu.setShowOffData(response)
+        if modules.client_bottommenu then
+            modules.client_bottommenu.setShowOffData(response)
+        end
     end
 
     HTTP.post(Services.status, json.encode({
@@ -530,7 +515,9 @@ function EnterGame.postShowCreatureBoost()
             return
         end
 
-        modules.client_bottommenu.setBoostedCreatureAndBoss(response)
+        if modules.client_bottommenu then
+            modules.client_bottommenu.setBoostedCreatureAndBoss(response)
+        end
     end
 
     HTTP.post(Services.status, json.encode({
@@ -577,11 +564,7 @@ function EnterGame.setPassword(password)
 end
 
 function EnterGame.setHttpLogin(httpLogin)
-    if type(httpLogin) == "boolean" then
-        enterGame:getChildById('httpLoginBox'):setChecked(httpLogin)
-    else
-        enterGame:getChildById('httpLoginBox'):setChecked(#httpLogin > 0)
-    end
+    enterGame:getChildById('httpLoginBox'):setChecked(ThappyBuild.httpLogin)
 end
 
 function EnterGame.clearAccountFields()
@@ -782,11 +765,11 @@ function EnterGame.doLogin()
     G.account = enterGame:getChildById('accountNameTextEdit'):getText()
     G.password = enterGame:getChildById('accountPasswordTextEdit'):getText()
     G.stayLogged = enterGame:getChildById('stayLoggedBox'):isChecked()
-    G.host = enterGame:getChildById('serverHostTextEdit'):getText()
-    G.port = tonumber(enterGame:getChildById('serverPortTextEdit'):getText())
-    local clientVersion = tonumber(clientBox:getText())
+    G.host = ThappyBuild.loginUrl
+    G.port = ThappyBuild.loginPort
+    local clientVersion = ThappyBuild.protocolVersion
     G.clientVersion = clientVersion
-    local httpLogin = enterGame:getChildById('httpLoginBox'):isChecked()
+    local httpLogin = ThappyBuild.httpLogin
 
     if g_game.isOnline() then
         local errorBox = displayErrorBox(tr('Login Error'), tr('Cannot login while already in game.'))
@@ -942,10 +925,6 @@ function EnterGame.setUniqueServer(host, port, protocol, windowWidth, windowHeig
     local server = Servers_init[host]
     enterGame.disableToken = not (server and server.useAuthenticator)
 
-    -- preload the assets
-    -- this is for the client_bottommenu module
-    -- it needs images of outfits
-    -- so it can display the boosted creature
     g_game.setClientVersion(clientVersion)
     g_game.setProtocolVersion(g_game.getClientProtocolVersion(clientVersion))
 end

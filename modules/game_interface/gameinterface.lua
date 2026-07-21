@@ -19,9 +19,7 @@ countWindow = nil
 logoutWindow = nil
 exitWindow = nil
 bottomSplitter = nil
--- timestamp of the last manual keyboard walk, refreshed by game_walk and read
--- by consumers (e.g. game_bot) to pause automation while the player walks;
--- defined here so it is always present whenever this module is loaded
+-- Timestamp of the last manual keyboard walk, refreshed by game_walk.
 lastManualWalk = 0
 limitedZoom = false
 currentViewMode = 0
@@ -50,7 +48,7 @@ local isExtendedViewActive = false
 
 local function updateSidePanelButtons()
     leftIncreaseSidePanels:setEnabled(not modules.client_options.getOption('showLeftExtraPanel'))
-    if g_platform.isMobile() then
+    if g_platform.isMobile() and modules.game_joystick and modules.game_shortcuts then
         leftDecreaseSidePanels:setEnabled(false)
     else
         leftDecreaseSidePanels:setEnabled(
@@ -70,7 +68,6 @@ end
 
 function init()
     g_ui.importStyle('styles/countwindow')
-    g_ui.importStyle('styles/countStashWindow')
 
     connect(g_game, {
         onGameStart = onGameStart,
@@ -281,7 +278,7 @@ function show()
     updateStretchShrink()
     logoutButton:setTooltip(tr('Logout'))
 
-    if g_platform.isMobile() then
+    if g_platform.isMobile() and modules.game_joystick and modules.game_shortcuts then
         mobileConfig.mobileWidthJoystick = modules.game_joystick.getPanel():getWidth()
         mobileConfig.mobileWidthShortcuts = modules.game_shortcuts.getPanel():getWidth()
         mobileConfig.mobileHeightJoystick = modules.game_joystick.getPanel():getHeight()
@@ -739,24 +736,6 @@ function createThingMenu(menuPosition, lookThing, useThing, creatureThing)
                 g_game.requestOutfit()
             end)
 
-            if g_game.getFeature(GamePrey) then
-                menu:addOption(tr('Prey Dialog'), function()
-                    modules.game_prey.show()
-                end)
-            end
-
-            if g_game.getFeature(GamePlayerMounts) then
-                if not localPlayer:isMounted() then
-                    menu:addOption(tr('Mount'), function()
-                        localPlayer:mount()
-                    end)
-                else
-                    menu:addOption(tr('Dismount'), function()
-                        localPlayer:dismount()
-                    end)
-                end
-            end
-
             if creatureThing:isPartyMember() then
                 if creatureThing:isPartyLeader() then
                     if creatureThing:isPartySharedExperienceActive() then
@@ -904,12 +883,6 @@ function createThingMenu(menuPosition, lookThing, useThing, creatureThing)
         end
     end
 
-    if modules.game_bot and useThing and useThing:isItem() then
-        menu:addSeparator()
-        local useThingId = useThing:getId()
-        menu:addOption("ID: " .. useThingId, function() g_window.setClipboardText(useThingId) end)
-    end
-
     if g_game.getFeature(GameThingQuickLoot) and modules.game_quickloot and lookThing and not lookThing:isCreature() and lookThing:isPickupable() then
         local quickLoot = modules.game_quickloot.QuickLoot
         menu.addSeparator(menu)
@@ -927,33 +900,6 @@ function createThingMenu(menuPosition, lookThing, useThing, creatureThing)
         menu.addOption(menu, tr(optionText .. " loot list"), function()
             actionFunction(lookThing:getId())
         end)
-    end
-
-    if g_game.getClientVersion() >= 1410 then
-        if lookThing and not lookThing:isCreature() and not lookThing:isNotMoveable() and lookThing:isPickupable() then
-            local player = g_game.getLocalPlayer()
-            if player and player:isSupplyStashAvailable() then
-                local itemTier = lookThing:getTier() or 0
-                if itemTier <= 0 then
-                    menu:addSeparator()
-                    menu:addOption(tr("Stow"), function()
-                        stashItem(lookThing)
-                    end)
-                    menu:addOption(tr("Stow all items of this type"), function()
-                        g_game.stashStowItem(lookThing:getPosition(), lookThing:getId(), 0,
-                            lookThing:getStackPos(), 2)
-                    end)
-
-                    local isContainer = lookThing:isContainer()
-                    if isContainer then
-                        menu:addOption(tr('Stow container\'s content'), function()
-                            g_game.stashStowItem(lookThing:getPosition(), lookThing:getId(), 0,
-                                lookThing:getStackPos(), 1)
-                        end)
-                    end
-                end
-            end
-        end
     end
 
     menu:display(menuPosition)
@@ -1592,29 +1538,6 @@ local function handleItemInteraction(item, widget, callback)
     cancelButton.onClick = cancelFunc
 end
 
-function stashItem(item)
-    local count = item:getCount()
-    if count == 1 then
-        g_game.stashStowItem(item:getPosition(), item:getId(), count,
-            item:getStackPos(), 0)
-        return
-    end
-    if countWindow then
-        if countWindow:isDestroyed() then
-            countWindow = nil
-        else
-            return
-        end
-    end
-    countWindow = g_ui.createWidget('CountStashWindow', rootWidget)
-
-    handleItemInteraction(item, countWindow, function(amount)
-        g_game.stashStowItem(item:getPosition(), item:getId(), amount,
-            item:getStackPos(), 0)
-        countWindow = nil
-    end)
-end
-
 function moveStackableItem(item, toPos)
     if countWindow then
         if countWindow:isDestroyed() then
@@ -2033,7 +1956,7 @@ end
 
 function toggleInternalFocus()
     for reason, _ in pairs(focusReason) do
-        if reason == 'bosscooldown' then
+        if reason == 'bosscooldown' and modules.game_analyser then
             modules.game_analyser.toggleBossCDFocus(false)
         end
     end

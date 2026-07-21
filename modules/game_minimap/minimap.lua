@@ -1,6 +1,6 @@
 local iconTopMenu = nil
 -- @ Minimap
-local minimapWidget = nil -- bot fix
+local minimapWidget = nil
 local otmm = true
 local oldPos = nil
 local fullscreenWidget
@@ -160,11 +160,7 @@ function zoomOut()
 end
 
 function openCyclopediaMap()
-    if g_game.getClientVersion() >= 1310 then
-        modules.game_cyclopedia.toggle('map')
-    else
-        return fullscreen()
-    end
+    return fullscreen()
 end
 
 function fullscreen()
