@@ -19,7 +19,7 @@ builds, paquetes, launcher, CI y controles de release están completos.
 | Windows | 28.57 MiB descargado, 48.80 MiB instalado |
 | Linux | 27.24 MiB descargado, 51.90 MiB instalado |
 | Baseline histórico | 163.15 MiB descargado, 728.60 MiB extraído |
-| Publicación | sólo draft/prerelease; stable y manifest estable no autorizados |
+| Publicación | `client-v0.1.0`, draft + prerelease, 22 adjuntos, no publicada |
 
 ## Listo
 
@@ -34,6 +34,7 @@ builds, paquetes, launcher, CI y controles de release están completos.
 - SBOM, SHA-256, top 100 y límites de tamaño;
 - tests gate y evals para runtime, packaging, updater y workflows;
 - draft PR: <https://github.com/ecantillano/otclient/pull/1>.
+- draft release: <https://github.com/ecantillano/otclient/releases/tag/untagged-ce4ac70c84dfbb951fcd>.
 
 ## Bloqueos para stable
 
