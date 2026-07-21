@@ -125,6 +125,38 @@ end
         except ReleaseError:
             return "fail"
         return "pass"
+    if name == "release_docs_match_workflow":
+        workflow = (ROOT / ".github" / "workflows" / "client-release.yml").read_text(encoding="utf-8")
+        documentation = (ROOT / "docs" / "client" / "09-release-process.md").read_text(
+            encoding="utf-8"
+        )
+        inputs = (
+            "version",
+            "asset_version",
+            "channel",
+            "test_login_url",
+            "test_login_port",
+            "test_website_url",
+            "test_support_url",
+            "test_manifest_url",
+            "mandatory",
+        )
+        if "publish_mode=" in documentation:
+            return "fail"
+        if any("{}:".format(item) not in workflow for item in inputs):
+            return "fail"
+        if any("-f {}=".format(item) not in documentation for item in inputs):
+            return "fail"
+        return "pass"
+    if name == "workflow_retries_cmake_configure":
+        ci = (ROOT / ".github" / "workflows" / "client-ci.yml").read_text(encoding="utf-8")
+        release = (ROOT / ".github" / "workflows" / "client-release.yml").read_text(
+            encoding="utf-8"
+        )
+        invocation = "scripts/retry-cmake-configure.sh cmake --preset"
+        if ci.count(invocation) < 2 or invocation not in release:
+            return "fail"
+        return "pass"
     raise ReleaseError("unknown eval case: {}".format(name))
 
 

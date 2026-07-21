@@ -213,7 +213,7 @@ jobs:
         shell: bash
         run: |
           export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"
-          cmake --preset "${{ matrix.preset }}" -DCMAKE_BUILD_TYPE=Release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_IPO=ON -DOTCLIENT_BUILD_TESTS=OFF
+          scripts/retry-cmake-configure.sh cmake --preset "${{ matrix.preset }}" -DCMAKE_BUILD_TYPE=Release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_IPO=ON -DOTCLIENT_BUILD_TESTS=OFF
           cmake --build --preset "${{ matrix.preset }}" --config Release --target otclient
           if [ "${{ matrix.platform }}" = linux ]; then strip --strip-unneeded "${{ matrix.binary }}"; fi
           mkdir -p launcher/bin

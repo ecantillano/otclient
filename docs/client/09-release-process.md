@@ -10,15 +10,54 @@
 6. Probar instalación limpia, launcher offline, update, hash inválido y rollback.
 7. Probar character list e ingreso al game server con una cuenta de test no guardada.
 
-## Primera prerelease
+## Primera draft production
 
 ```bash
-git tag -s client-v0.1.0-rc.1 -m "Thappy client 0.1.0-rc.1"
-git push origin client-v0.1.0-rc.1
-gh workflow run client-release.yml --ref client-v0.1.0-rc.1 -f publish_mode=prerelease
+git tag -s client-v0.1.0 -m "Thappy client 0.1.0"
+git push origin client-v0.1.0
 ```
 
-Si no existe una clave Git de firma, usar un tag anotado sin `-s` y registrar esa limitación. Nunca sobrescribir un tag.
+El push del tag inicia `client-release.yml`. Aunque el canal del artefacto es
+`stable` y usa el perfil production, el workflow crea la publicación como
+**draft y prerelease**. No publica stable ni actualiza el manifest de jugadores.
+
+Si no existe una clave Git de firma, usar un tag anotado sin `-s` y registrar
+esa limitación. Nunca sobrescribir un tag.
+
+## Siguiente prerelease test
+
+1. Cambiar `VERSION` a una versión `X.Y.Z-rc.N`.
+2. Configurar las variables de repositorio `THAPPY_TEST_LOGIN_URL`,
+   `THAPPY_TEST_LOGIN_PORT`, `THAPPY_TEST_WEBSITE_URL`,
+   `THAPPY_TEST_SUPPORT_URL` y `THAPPY_TEST_MANIFEST_URL`.
+3. Ejecutar tests, evals y CI.
+4. Crear un tag nuevo que coincida exactamente con `VERSION`:
+
+```bash
+git tag -s client-v0.1.1-rc.1 -m "Thappy client 0.1.1-rc.1"
+git push origin client-v0.1.1-rc.1
+```
+
+Como alternativa, una vez que el workflow exista en la rama por defecto, se
+puede iniciar manualmente sin crear el tag por adelantado:
+
+```bash
+gh workflow run client-release.yml \
+  --ref main \
+  -f version=0.1.1-rc.1 \
+  -f asset_version=1525 \
+  -f channel=test \
+  -f test_login_url=https://test.example.invalid/login.php \
+  -f test_login_port=443 \
+  -f test_website_url=https://test.example.invalid \
+  -f test_support_url=https://test.example.invalid/support \
+  -f test_manifest_url=https://test.example.invalid/manifest-test.json \
+  -f mandatory=false
+```
+
+Los valores `.invalid` son marcadores y el workflow fallará hasta recibir
+endpoints test reales. El dispatch rechaza tags existentes y no sobrescribe
+releases.
 
 El workflow debe:
 

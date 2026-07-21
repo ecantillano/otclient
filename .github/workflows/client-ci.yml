@@ -89,7 +89,7 @@ jobs:
         shell: bash
         run: |
           export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"
-          cmake --preset linux-debug
+          scripts/retry-cmake-configure.sh cmake --preset linux-debug
       - name: Build and run C++ tests
         shell: bash
         run: |
@@ -151,7 +151,7 @@ jobs:
         run: |
           export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"
           echo "VCPKG_ROOT=${VCPKG_INSTALLATION_ROOT}" >> "$GITHUB_ENV"
-          cmake --preset "${{ matrix.preset }}" \
+          scripts/retry-cmake-configure.sh cmake --preset "${{ matrix.preset }}" \
             -DCMAKE_BUILD_TYPE=Release \
             -DTOGGLE_BIN_FOLDER=ON \
             -DOPTIONS_ENABLE_IPO=ON \

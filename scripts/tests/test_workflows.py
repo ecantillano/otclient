@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
+RELEASE_DOC = ROOT / "docs" / "client" / "09-release-process.md"
 
 
 class WorkflowContractTests(unittest.TestCase):
@@ -24,11 +25,12 @@ class WorkflowContractTests(unittest.TestCase):
         text = self.read("client-ci.yml")
         self.assertIn("build/windows-release/bin/Thappy.exe", text)
         self.assertIn("build/linux-release/bin/thappy", text)
-        self.assertIn("cmake --preset linux-debug", text)
+        self.assertIn("scripts/retry-cmake-configure.sh cmake --preset linux-debug", text)
         self.assertIn("ctest --preset linux-debug", text)
         self.assertIn("Verify vcpkg manifest baseline", text)
         self.assertIn("--budget 104857600", text)
         self.assertGreaterEqual(text.count('export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"'), 2)
+        self.assertGreaterEqual(text.count("scripts/retry-cmake-configure.sh cmake --preset"), 2)
         self.assertIn("releases/download/client-v${VERSION}", text)
         self.assertNotIn("contents: write", text)
 
@@ -40,6 +42,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("Release ${RELEASE_TAG} already exists; refusing to overwrite.", text)
         self.assertIn("manifest-${CHANNEL}.json", text)
         self.assertIn("Verify vcpkg manifest baseline", text)
+        self.assertIn("scripts/retry-cmake-configure.sh cmake --preset", text)
         self.assertIn("--budget 104857600", text)
         self.assertIn("--draft", text)
         self.assertIn("--prerelease", text)
@@ -53,6 +56,24 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("isPrerelease", text)
         self.assertIn("already exists; refusing to overwrite", text)
         self.assertEqual(text.count("contents: write"), 1)
+
+    def test_release_documentation_uses_real_dispatch_inputs(self):
+        workflow = self.read("client-release.yml")
+        documentation = RELEASE_DOC.read_text(encoding="utf-8")
+        self.assertNotIn("publish_mode=", documentation)
+        for name in (
+            "version",
+            "asset_version",
+            "channel",
+            "test_login_url",
+            "test_login_port",
+            "test_website_url",
+            "test_support_url",
+            "test_manifest_url",
+            "mandatory",
+        ):
+            self.assertIn("{}:".format(name), workflow)
+            self.assertIn("-f {}=".format(name), documentation)
 
 
 if __name__ == "__main__":
