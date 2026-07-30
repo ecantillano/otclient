@@ -27,6 +27,13 @@ MessageSettings = {
         screenTarget = 'highCenterLabel',
         consoleOption = 'showInfoMessagesInConsole'
     },
+    thappyLook = {
+        color = TextColors.green,
+        consoleTab = 'Server Log',
+        screenTarget = 'highCenterLabel',
+        consoleOption = 'showInfoMessagesInConsole',
+        colored = true
+    },
     centerHKGreen = {
         color = TextColors.green,
         consoleTab = 'Server Log',
@@ -151,7 +158,7 @@ MessageTypes = {
     [MessageModes.Game] = MessageSettings.centerWhite,
     [MessageModes.Status] = MessageSettings.status,
     [MessageModes.Warning] = MessageSettings.centerRed,
-    [MessageModes.Look] = MessageSettings.centerGreen,
+    [MessageModes.Look] = MessageSettings.thappyLook,
     [MessageModes.Loot] = MessageSettings.loot,
     [MessageModes.Red] = MessageSettings.consoleRed,
     [MessageModes.Blue] = MessageSettings.consoleBlue,
@@ -255,7 +262,10 @@ function displayMessage(mode, text)
 
     if msgtype.consoleTab ~= nil and
         (msgtype.consoleOption == nil or modules.client_options.getOption(msgtype.consoleOption)) then
-        if msgtype == MessageSettings.loot or msgtype == MessageSettings.valuableLoot then
+        if msgtype == MessageSettings.thappyLook then
+            local coloredText, isThappyRarity = ItemsDatabase.setColorRarityMessage(text)
+            modules.game_console.addText(coloredText, isThappyRarity and msgtype or MessageSettings.centerGreen, tr(msgtype.consoleTab))
+        elseif msgtype == MessageSettings.loot or msgtype == MessageSettings.valuableLoot then
             local lootColoredText = ItemsDatabase.setColorLootMessage(text)
             local lootTabName = tr(msgtype.consoleTab)
             local targetTab = modules.game_console.getTab(lootTabName) and lootTabName or tr("Server Log")
@@ -267,7 +277,16 @@ function displayMessage(mode, text)
 
     if msgtype.screenTarget then
         local label = messagesPanel:recursiveGetChildById(msgtype.screenTarget)
-        if msgtype == MessageSettings.loot and not modules.client_options.getOption('showLootMessagesOnScreen') then
+        if msgtype == MessageSettings.thappyLook then
+            local coloredText, isThappyRarity = ItemsDatabase.setColorRarityMessage(text)
+            if isThappyRarity then
+                label:setColor(msgtype.color)
+                label:setColoredText(coloredText)
+            else
+                label:setText(text)
+                label:setColor(MessageSettings.centerGreen.color)
+            end
+        elseif msgtype == MessageSettings.loot and not modules.client_options.getOption('showLootMessagesOnScreen') then
             return
         elseif msgtype == MessageSettings.loot or msgtype == MessageSettings.valuableLoot then
             local coloredText = ItemsDatabase.setColorLootMessage(text)

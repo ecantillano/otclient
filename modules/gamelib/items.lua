@@ -10,6 +10,95 @@ ItemsDatabase.rarityColors = {
     ["grey"] = TextColors.grey,
 }
 
+-- Per-instance Thappy rarity colors. These are intentionally separate from
+-- the legacy mean-price frames above and from official Exaltation Forge tiers.
+ItemsDatabase.thappyRarityColors = {
+    [1] = TextColors.grey,
+    [2] = "#4388ff",
+    [3] = "#b260ff",
+    [4] = "#ff9f2f",
+    [5] = "#e75cff",
+}
+
+ItemsDatabase.thappyBonusColor = "#54d66b"
+
+local thappyRarityNames = {
+    [1] = "Común",
+    [2] = "Raro",
+    [3] = "Épico",
+    [4] = "Legendario",
+    [5] = "Místico",
+}
+
+local thappyBonusLabels = {
+    "Vida máxima",
+    "Mana máximo",
+    "Regeneración de vida",
+    "Regeneración de mana",
+    "Velocidad",
+    "Protección física",
+    "Protección de energía",
+    "Protección de tierra",
+    "Protección de fuego",
+    "Protección de hielo",
+    "Protección sagrada",
+    "Protección de muerte",
+    "Sword Fighting",
+    "Axe Fighting",
+    "Club Fighting",
+    "Distance Fighting",
+    "Shielding",
+    "Magic Level",
+}
+
+function ItemsDatabase.setColorRarityMessage(text)
+    -- Colored-text markup has no escaping. Preserve arbitrary Look text
+    -- literally instead of interpreting braces supplied by another server.
+    if text:find("{", 1, true) or text:find("}", 1, true) then
+        return text, false
+    end
+
+    local lines = {}
+    local tier
+    local rarityTier
+    for line in (text .. "\n"):gmatch("(.-)\n") do
+        table.insert(lines, line)
+        local exactTier = tonumber(line:match("^Tier ([1-5])$"))
+        if exactTier then
+            tier = exactTier
+        end
+        for candidateTier, rarityName in pairs(thappyRarityNames) do
+            if line == "Rareza: " .. rarityName then
+                rarityTier = candidateTier
+                break
+            end
+        end
+    end
+    if not tier or rarityTier ~= tier then
+        return text, false
+    end
+
+    local result = {}
+    for _, line in ipairs(lines) do
+        local color = TextColors.white
+        local isBonus = false
+        for _, label in ipairs(thappyBonusLabels) do
+            if line:find(label .. " +", 1, true) == 1 then
+                isBonus = true
+                break
+            end
+        end
+        if isBonus then
+            color = ItemsDatabase.thappyBonusColor
+        elseif line == "Tier " .. tier or line == "Rareza: " .. thappyRarityNames[tier] or
+            line:find(thappyRarityNames[tier], 1, true) then
+            color = ItemsDatabase.thappyRarityColors[tier]
+        end
+        table.insert(result, line == "" and "" or "{" .. line .. ", " .. color .. "}")
+    end
+    return table.concat(result, "\n"), true
+end
+
 local function getColorForValue(value)
     if value >= 1000000 then
         return "yellow"
@@ -193,5 +282,3 @@ function ItemsDatabase.setTier(widget, item, isSmall)
     widget.tier:setImageSize(config.size)
     widget.tier:setVisible(true)
 end
-
-

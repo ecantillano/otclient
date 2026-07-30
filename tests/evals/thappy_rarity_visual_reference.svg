@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620">
+  <rect width="1200" height="620" fill="#15181d"/>
+  <text x="54" y="58" fill="#ffffff" font-family="Arial, sans-serif" font-size="28" font-weight="700">Thappy rarity Look</text>
+  <text x="54" y="88" fill="#8e98a8" font-family="Arial, sans-serif" font-size="15">Referencia visual determinística, no captura runtime</text>
+
+  <g font-family="Arial, sans-serif" font-size="16">
+    <g transform="translate(54 124)">
+      <rect width="210" height="430" rx="8" fill="#20252c" stroke="#343b45"/>
+      <text x="20" y="38" fill="#AAAAAA" font-size="20" font-weight="700">Común</text>
+      <text x="20" y="68" fill="#AAAAAA">Tier 1</text>
+      <text x="20" y="112" fill="#ffffff">plate armor</text>
+      <text x="20" y="142" fill="#ffffff">Armor: 10</text>
+      <text x="20" y="188" fill="#54d66b">Vida máxima +8</text>
+    </g>
+
+    <g transform="translate(278 124)">
+      <rect width="210" height="430" rx="8" fill="#20252c" stroke="#343b45"/>
+      <text x="20" y="38" fill="#4388ff" font-size="20" font-weight="700">Raro</text>
+      <text x="20" y="68" fill="#4388ff">Tier 2</text>
+      <text x="20" y="112" fill="#ffffff">demon shield</text>
+      <text x="20" y="142" fill="#ffffff">Defense: 35</text>
+      <text x="20" y="188" fill="#54d66b">Shielding +2</text>
+      <text x="20" y="218" fill="#54d66b">Protección física +1%</text>
+    </g>
+
+    <g transform="translate(502 124)">
+      <rect width="210" height="430" rx="8" fill="#20252c" stroke="#343b45"/>
+      <text x="20" y="38" fill="#b260ff" font-size="20" font-weight="700">Épico</text>
+      <text x="20" y="68" fill="#b260ff">Tier 3</text>
+      <text x="20" y="112" fill="#ffffff">royal helmet</text>
+      <text x="20" y="142" fill="#ffffff">Armor: 9</text>
+      <text x="20" y="188" fill="#54d66b">Mana máximo +16</text>
+      <text x="20" y="218" fill="#54d66b">Magic Level +2</text>
+      <text x="20" y="248" fill="#54d66b">Protección de hielo +1%</text>
+    </g>
+
+    <g transform="translate(726 124)">
+      <rect width="210" height="430" rx="8" fill="#20252c" stroke="#343b45"/>
+      <text x="20" y="38" fill="#ff9f2f" font-size="20" font-weight="700">Legendario</text>
+      <text x="20" y="68" fill="#ff9f2f">Tier 4</text>
+      <text x="20" y="112" fill="#ffffff">golden legs</text>
+      <text x="20" y="142" fill="#ffffff">Armor: 9</text>
+      <text x="20" y="188" fill="#54d66b">Vida máxima +24</text>
+      <text x="20" y="218" fill="#54d66b">Mana máximo +18</text>
+      <text x="20" y="248" fill="#54d66b">Velocidad +3</text>
+      <text x="20" y="278" fill="#54d66b">Protección física +2%</text>
+    </g>
+
+    <g transform="translate(950 124)">
+      <rect width="196" height="430" rx="8" fill="#20252c" stroke="#e75cff" stroke-width="2"/>
+      <text x="20" y="38" fill="#e75cff" font-size="20" font-weight="700">Místico</text>
+      <text x="20" y="68" fill="#e75cff">Tier 5</text>
+      <text x="20" y="112" fill="#ffffff">magic sword</text>
+      <text x="20" y="142" fill="#ffffff">Attack: 48</text>
+      <text x="20" y="188" fill="#54d66b">Sword Fighting +4</text>
+      <text x="20" y="218" fill="#54d66b">Vida máxima +52</text>
+      <text x="20" y="248" fill="#54d66b">Mana máximo +41</text>
+      <text x="20" y="278" fill="#54d66b">Regen. vida +1.0/s</text>
+      <text x="20" y="308" fill="#54d66b">Regen. mana +1.0/s</text>
+    </g>
+  </g>
+</svg>
